@@ -13,14 +13,16 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ```{r}
 library(dplyr)
+library(ggplot2)
+library(stringr)
 ```
 
 
 ## R Markdown
 
-```{r}
-RawData <- read.csv(file = '00_Datos/00_RawData/MadridAirBnb/listings.csv')
-summary(RawData)
+```{r loadData}
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv')
+#summary(RawData)
 data <- RawData %>%
   select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
 summary(data)
@@ -28,5 +30,28 @@ ncol(data)
 str(data)
 ```
 
+A continuación convertiremos los tipos que no sean correctos:
+
+```{r typeConversion}
+data$price<-as.numeric(substring(data$price, 2)) #Convertimos los precios en números
+# data$host_is_superhost %>%str_replace_all(c('f' = "0", "t"="1"))
+class(data$host_is_superhost) = "Logical" #Convertimos esta variable a lógica. TODO Verificar si esta conversión es buena
+```
 
 
+```{r preciosGenerales}
+ggplot(data, aes(x= reorder(neighbourhood_group_cleansed, price), y= price)) +
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+Esta gráfica no es clara, ya que están mezclados pisos y habitaciones. La intuición dice que en San Blas-Canillejas debe haber todo pisos, puesto que no es un lugar céntrico.
+
+```{r cuentaAirbnbs}
+ggplot(data, aes(x=neighbourhood_group_cleansed)) + geom_bar()
+```
+Este gráfico revela la inmensa cantidad de AirBnbs que hay en el centro frente al resto de Madrid.
+
+```
+TODO:
+Separar por tipos de Airbnb: piso o habitación
+```
