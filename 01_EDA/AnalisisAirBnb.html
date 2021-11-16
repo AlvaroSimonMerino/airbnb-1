@@ -9,7 +9,7 @@
 <meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
 
-<meta name="author" content="AlvaroSimonMerino" />
+<meta name="author" content="Alvaro Simón Merino, Antonio Fernández Cáceres" />
 
 
 <title>FAD_DataAnalysis_practica</title>
@@ -165,7 +165,7 @@ pre code {
 
 
 <h1 class="title toc-ignore">FAD_DataAnalysis_practica</h1>
-<h4 class="author">AlvaroSimonMerino</h4>
+<h4 class="author">Alvaro Simón Merino, Antonio Fernández Cáceres</h4>
 <h4 class="date">13/11/2021</h4>
 
 </div>
@@ -185,7 +185,7 @@ pre code {
 library(stringr)</code></pre>
 <div id="r-markdown" class="section level2">
 <h2>R Markdown</h2>
-<pre class="r"><code>RawData &lt;- read.csv(file = &#39;../00_DatosOriginales/listings.csv&#39;)
+<pre class="r"><code>RawData &lt;- read.csv(file = &#39;../00_DatosOriginales/listings.csv&#39;, header = TRUE)
 #summary(RawData)
 data &lt;- RawData %&gt;%
   select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
