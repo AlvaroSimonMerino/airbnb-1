@@ -1,6 +1,6 @@
 ---
 title: "FAD_DataAnalysis_practica"
-author: "Alvaro Simón Merino, Antonio Fernández Cáceres"
+author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "13/11/2021"
 output: html_document
 ---
