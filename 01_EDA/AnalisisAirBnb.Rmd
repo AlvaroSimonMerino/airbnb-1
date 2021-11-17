@@ -28,5 +28,11 @@ ncol(data)
 str(data)
 ```
 
+Para dividir nuestros datos, veamos en primero cuántas observaciones hay en cada grupo (por distritos de la ciudad)
+```{r}
+data %>% 
+  group_by(neighbourhood_group_cleansed) %>% 
+  count()
 
+```
 
