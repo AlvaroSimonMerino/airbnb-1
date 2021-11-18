@@ -1,5 +1,5 @@
 ---
-title: "FAD_DataAnalysis_practica"
+title: "EDA Airbnb"
 author: "Antonio Fernández Cáceres"
 date: "18/11/2021"
 output:
@@ -9,13 +9,6 @@ output:
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
-```
-
-## 1. Cargar Análisis preliminar
-
-```{r}
-library(knitr)
-source(knitr::purl("AnalisisInicialAirBnb.Rmd"))
 ```
 
 ### 4. Análisis exploratorio de datos

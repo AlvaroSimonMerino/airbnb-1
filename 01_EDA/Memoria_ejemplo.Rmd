@@ -51,7 +51,7 @@ Dado que la base de datos elegida está relacionado con el alquiler de viviendas
 2. Realizar un análisis exploratorio inicial de cada una de las variables de la base de datos.
     - Se llevará a cabo separando las variables categóricas de las cualitativas para su posterior estudio.
     
-3. Imputar las varaibles faltantes de la base de datos previo estudio
+3. Imputar las variables faltantes de la base de datos previo estudio
 4. Aplicar las transformaciones necesarias a cada una de las variables.
 5. Entrenar el modelo matemático de regresión múltiple para la predicción de la varaible precio.
 <br/>
