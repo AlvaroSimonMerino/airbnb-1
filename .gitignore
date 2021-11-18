@@ -1,10 +1,6 @@
-<<<<<<< HEAD
-.Rproj.user
-.Rhistory
-.RData
-.Ruserdata
+*.Rproj.user
+*.Rhistory
+*.RData
+*.Ruserdata
 *.pdf
 *.html
-=======
-.Rproj.user
->>>>>>> 17782a7761afa36c50876fab1a48e209be8137e6
