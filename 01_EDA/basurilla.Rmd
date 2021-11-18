@@ -1,0 +1,170 @@
+---
+title: "basurilla"
+author: "Antonio"
+date: "18/11/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+
+
+
+
+Por lo que parece hay un set de outliers muy bien definido.
+
+```{r PreciosOutliers}
+
+ggplot(data, aes(x=room_type, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+
+cuentaTipos <- data %>%
+  group_by(room_type) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaTipos
+
+habs <- data[data$room_type=="Private room",]
+aptos <- data[data$room_type=="Entire home/apt",]
+comps <- data[data$room_type=="Shared room",]
+hotels <-data[data$room_type=="Hotel room",]
+
+cuantPrecioHabs <- quantile(data[data$room_type=="Private room","price"], names=FALSE)
+cuantPrecioAptos <- quantile(data[data$room_type=="Entire home/apt","price"], names=FALSE)
+cuantPrecioComps <- quantile(data[data$room_type=="Shared room","price"], names=FALSE)
+cuantPrecioHotels <- quantile(data[data$room_type=="Hotel room","price"], names=FALSE)
+```
+
+```{r preciosPorBarrios}
+
+ggplot(habs, aes(x = neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+ggplot(aptos, aes(x = neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+ggplot(comps, aes(x = neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+ggplot(hotels, aes(x = neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+```
+Apenas hay hoteles. Los precios de las habitaciones compartidas son muy dispares:
+
+
+
+
+```{r compartidas}
+
+ggplot(comps, aes(x = beds, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+```
+
+
+
+```{r HabsOutliersPorBarrios}
+cuantPrecioHabs[4]
+habsCaras <- data[data$price>=cuantPrecioHabs[4],]
+count(habsCaras)
+
+hCarasPorBarrio <- habsCaras %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count) %>%
+  rename(cuenta = count)
+
+ggplot(hCarasPorBarrio, aes(x=reorder(neighbourhood_group_cleansed, -cuenta), y=cuenta)) + geom_bar(stat='identity')
+```
+
+La mayoría de habitaciones caras están en el centro. Veamos cómo se distribuyen por cuartiles:
+
+```{r distrHabsOutliersPorBarrios}
+ggplot(data, aes(x = neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+```
+
+
+```{r PreciosOutliersPorBarrios}
+
+count(data[data$price>200,])
+caros <-data[data$price>200,]
+hCarasPorBarrio <- caros %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count) %>%
+  rename(cuenta = count)
+
+ggplot(cuentacaros, aes(x=reorder(neighbourhood_group_cleansed, -cuenta), y=cuenta)) + geom_bar(stat='identity')
+```
+
+
+
+```{r cuentaAirbnbs}
+cuentaABs <- data %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count) %>%
+  rename(cuenta = count)
+
+ggplot(cuentaABs, aes(x=reorder(neighbourhood_group_cleansed, -cuenta), y=cuenta)) + geom_bar(stat='identity')
+```
+Este gráfico revela la inmensa cantidad de AirBnbs que hay en el centro frente al resto de Madrid.
+
+
+```{r cuentaTipos}
+
+cuentaTipos <- data %>%
+  group_by(room_type) %>%
+  summarise(count = n()) %>%
+  arrange(-count) %>%
+  rename(cuenta = count)
+
+ggplot(cuentaTipos, aes(x=reorder(room_type, -cuenta), y=cuenta)) + geom_bar(stat='identity')
+```
+
+Hay cuatro tipos de AirBnb: Apartamento completo (mayoría), habitación privada, 
+
+```{r preciosGenerales}
+ggplot(data, aes(x= reorder(neighbourhood_group_cleansed, -price), y= price)) +
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+Esta gráfica no es clara, ya que están mezclados pisos y habitaciones.
+
+
+```{r preciosPisos}
+
+dataPisos <- data[data$room_type == "Entire home/apt",]
+ggplot(dataPisos, aes(x= reorder(neighbourhood_group_cleansed, -price), y= price)) +
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+```{r preciosHabitaciones}
+
+dataHabs <- data[data$room_type == "Private room",]
+ggplot(dataHabs, aes(x= reorder(neighbourhood_group_cleansed, -price), y= price)) +
+  geom_bar(stat = "summary", fun = "mean")
+```
+
+
+
+```{r preciosCanillejas}
+
+dataCanillejasPisos <- data[data$neighbourhood_group_cleansed == "San Blas - Canillejas" & data$room_type == "Entire home/apt",]
+dataCanillejasHabs <- data[data$neighbourhood_group_cleansed == "San Blas - Canillejas" & data$room_type == "Private room",]
+dataCanillejasPisos$price
+dataCanillejasHabs$price
+```
+
+Habrá que explorar por qué los pisos son tan caros en Canillejas. ¿Habitaciones para varias personas?
+
+
+```{r preciosVillaverde}
+
+dataVillaverdePisos <- data[data$neighbourhood_group_cleansed == "Villaverde" & data$room_type == "Entire home/apt",]
+dataVillaverdeHabs <- data[data$neighbourhood_group_cleansed == "Villaverde" & data$room_type == "Private room",]
+dataVillaverdePisos$price
+dataVillaverdeHabs$price
+```
+
+Los pisos de Villaverde o son outliers (error o casa de lujo) o son pisos francos XD
+
+```
+TODO:
+explorar por qué los pisos son tan caros en Canillejas. ¿Habitaciones para varias personas?
+Los pisos de Villaverde o son outliers (error o casa de lujo) o son pisos francos XD
+```

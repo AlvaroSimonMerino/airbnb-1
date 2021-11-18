@@ -1,0 +1,127 @@
+---
+title: "AMV Airbnb"
+author: "Antonio Fernández Cáceres"
+date: "18/11/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Cargar Librerías
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(batman)
+```
+
+```{r loadData}
+data <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+```
+
+```{r typeConversion}
+data$host_since <- as.Date(data$host_since)
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+data$price<-parse_number(data$price)
+```
+
+### 4. Análisis exploratorio multivariante del precio
+
+#### price vs room_type
+
+```{r priceVSroomtype}
+ggplot(data, aes(x=room_type, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+```
+
+#### price vs neighbourhood_group_cleansed
+
+```{r priceVSneigh}
+ggplot(data, aes(x=neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') # CHECK: relevant
+```
+
+#### price vs host_since
+```{r priceVSsuperhost}
+ggplot(data, aes(x=host_since, y=price)) + geom_col() + scale_y_continuous(trans='log10') # CHECK: Irrelevant
+```
+
+
+#### price vs host_is_superhost
+```{r priceVSsuperhost}
+ggplot(data, aes(x=host_is_superhost, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') #CHECK: bit of an edge
+```
+
+#### price vs accommodates
+```{r priceVSaccommodates}
+pricevsAcco <- data %>%
+  group_by(accommodates) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsAcco, aes(x=accommodates, y=precio)) + geom_col() # CHECK: Fairly obvious
+```
+
+#### price vs bedrooms
+
+```{r priceVSbedrooms}
+pricevsBR <- data %>%
+  group_by(bedrooms) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsBR, aes(x=bedrooms, y=precio)) + geom_col() # CHECK: accommodates are better
+```
+
+
+#### price vs beds
+
+```{r priceVSbeds}
+pricevsBeds <- data %>%
+  group_by(beds) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsBeds, aes(x=beds, y=precio)) + geom_col() # CHECK: Fairly obvious. Accommodates can be better.
+```
+
+#### price vs minimum_nights
+
+```{r priceVSminimum_nights}
+pricevsminimum_nights <- data %>%
+  group_by(minimum_nights) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsminimum_nights, aes(x=minimum_nights, y=precio)) + geom_col() # No value
+```
+
+#### price vs minimum_nights_avg_ntm
+
+```{r priceVSminimum_nights_avg_ntm}
+pricevsminimum_nights_avg_ntm <- data %>%
+  group_by(minimum_nights_avg_ntm) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsminimum_nights_avg_ntm, aes(x=minimum_nights_avg_ntm, y=precio)) + geom_col() + scale_y_continuous(trans='log10') #¿?
+```
+
+#### price vs maximum_nights_avg_ntm
+
+```{r priceVSmaximum_nights_avg_ntm}
+pricevsmaximum_nights_avg_ntm <- data %>%
+  group_by(maximum_nights_avg_ntm) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsmaximum_nights_avg_ntm, aes(x=maximum_nights_avg_ntm, y=precio)) + geom_col() # No value
+```
+
+#### price vs availability_365
+
+```{r priceVSavailability_365}
+pricevsavailability_365 <- data %>%
+  group_by(availability_365) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() # CHECK: can seasonality be borrowed from here and scraping date?
+```
