@@ -35,7 +35,7 @@ library(tidyr)
 <br/>
 
 ## 01 Definición de objetivos
-Dado que la base de datos elegida está relacionado con el alquiler de viviendas, consideramos la variable "price", la cual representa el valor del precio del alquiler, como la variable objetivo de la práctica.
+Dado que la base de datos elegida está relacionada con el alquiler de viviendas, consideramos la variable "price", la cual representa el valor del precio del alquiler, como la variable objetivo de la práctica.
 <br/>
 
 ### Objetivos generales
@@ -44,7 +44,7 @@ Dado que la base de datos elegida está relacionado con el alquiler de viviendas
 <br/>
 
 ### Objetivos específicos
-1. Separar de los datos en 2 grupos de datos: trainning, control y testing.
+1. Separar los datos en 2 grupos de datos: trainning, control y testing.
     - El grupo training + control contiene el 80% de los datos, con el cual entrenaremos el modelo. 
     - El grupo test contiene el 20% de los datos y se dejará como conjunto aislado hasta el final de la práctica como simulación de datos reales.
 

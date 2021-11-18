@@ -3,54 +3,104 @@ title: "FAD_DataAnalysis_practica"
 author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "13/11/2021"
 output:
-  html_document: default
-  pdf_document: default
+  html_document:
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+  pdf_document: 
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+---
+
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 1. Cargar Librerías
+## 00 Introducción a la práctica y librerías
 
-```{r}
+Para la práctica hemos seleccionado una base de datos obtenida de insideairbnb.com con los alquileres de AirBnb de Madrid. Esta base de datos es de dominio público y consta de 22 variables con 18909 observaciones.
+
+La base de datos puede descargarse en el siguiente enlace: http://insideairbnb.com/get-the-data.html
+
+
+Las librerias usadas para esta práctica son las siguientes:
+
+ - dplyr
+ - ggplot2
+ - stringr
+ - readr
+ - batman
+ - knitr
+ - tidyr
+
+```{r include=FALSE}
 library(dplyr)
 library(ggplot2)
 library(stringr)
 library(readr)
 library(batman)
+library(knitr)
+library(tidyr)
 ```
+<br/>
 
+## 01 Definición de objetivos
+Dado que la base de datos elegida está relacionada con el alquiler de viviendas, consideramos la variable "price", la cual representa el valor del precio del alquiler, como la variable objetivo de la práctica.
+<br/>
 
-## 2. Ingesta y limpieza de datos
+### Objetivos generales
+- Analizar las variables de la base de datos seleccionada para su comprensión y posterior estudio.
+- Aplicar el módelo de regresión lineal múltiple para inferir la variable "price" seleccionada, que corresponde al precio de la vivienda.
+<br/>
+
+### Objetivos específicos
+1. Separar los datos en 2 grupos de datos: trainning, control y testing.
+    - El grupo training + control contiene el 80% de los datos, con el cual entrenaremos el modelo. 
+    - El grupo test contiene el 20% de los datos y se dejará como conjunto aislado hasta el final de la práctica como simulación de datos reales.
+
+2. Realizar un análisis exploratorio inicial de cada una de las variables de la base de datos.
+    - Se llevará a cabo separando las variables categóricas de las cualitativas para su posterior estudio.
+    
+3. Imputar las variables faltantes de la base de datos previo estudio
+4. Aplicar las transformaciones necesarias a cada una de las variables.
+5. Entrenar el modelo matemático de regresión múltiple para la predicción de la varaible precio.
+<br/>
+
+## 02 Ingesta y limpieza de datos
 
 Según el diccionario de datos proporcionado con los mismos, se adjunta el significado de cada variable de interés a extraer:
 
-$id$: identificador único de cada espacio alquilable.
-$host\_id$: identificador único de cada arrendador.
-$host\_since$: fecha en que el arrendador se dio de alta en la plataforma.
-$host\_is\_superhost$: indicador lógico de si el arrendador tiene excelentes puntuaciones.
-$neighbourhood\_group\_cleansed$: distrito en que se encuentra el espacio alquilable.
-$property\_type$: tipo de propiedad.
-$room\_type$: tipo de habitación.
-$accommodates$: capacidad máxima del espacio.
-$bedrooms$: número de cuartos de baño.
-$beds$: número de camas de la habitación.
-$price$: precio por noche en moneda local.
-$minimum\_nights$: mínimo de noches por estancia.
-$minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
-$maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
-$availability\_365$: disponibilidad del espacio durante los próximos 365 días.
+- $id$: identificador único de cada espacio alquilable.
+- $host\_id$: identificador único de cada arrendador.
+- $host\_since$: fecha en que el arrendador se dio de alta en la plataforma.
+- $host\_is\_superhost$: indicador lógico de si el arrendador tiene excelentes puntuaciones.
+- $neighbourhood\_group\_cleansed$: distrito en que se encuentra el espacio alquilable.
+- $property\_type$: tipo de propiedad.
+- $room\_type$: tipo de habitación.
+- $accommodates$: capacidad máxima del espacio.
+- $bedrooms$: número de cuartos de baño.
+- $beds$: número de camas de la habitación.
+- $price$: precio por noche en moneda local.
+- $minimum\_nights$: mínimo de noches por estancia.
+- $minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
+- $maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
+- $availability\_365$: disponibilidad del espacio durante los próximos 365 días.
 
 Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas: (TODO: revisar esto en alguna otra parte)
-$review\_scores\_rating$
-$review\_scores\_accuracy$
-$review\_scores\_cleanliness$
-$review\_scores\_checkin$
-$review\_scores\_communication$
-$review\_scores\_location$
-$review\_scores\_value$
-$reviews\_per\_month$
+
+- $review\_scores\_rating$
+- $review\_scores\_accuracy$
+- $review\_scores\_cleanliness$
+- $review\_scores\_checkin$
+- $review\_scores\_communication$
+- $review\_scores\_location$
+- $review\_scores\_value$
+- $reviews\_per\_month$
 
 Procedemos a extraer los datos de nuestras variables de interés del fichero $.csv$:
 
@@ -79,7 +129,7 @@ str(data)
 Ahora todos los datos están en el formato correcto.
 
 
-### 3. Estudio de valores faltantes
+## 03 Estudio de valores faltantes
 
 ```{r summary}
 summary(data)
@@ -100,7 +150,7 @@ Viendo el summary se puede comprobar que:
 
 
 
-### 4. Análisis exploratorio de datos
+## 04 Análisis exploratorio de datos
 
 TODO: A partir de aquí trabajaremos en ficheros separados de este, y los enlazaremos aquí.
 
