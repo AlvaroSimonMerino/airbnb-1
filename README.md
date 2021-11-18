@@ -5,7 +5,8 @@ De momento AnalisisInicialAirbnb.Rmd es el fichero principal, desde el cual llam
 Para empezar a trabajar con los datos ya en ficheros separados, hay que añadir a nuestro código:
 
 library(knitr)
-source(knitr::purl("AnalisisInicialAirBnb.Rmd")
+
+source(knitr::purl("AnalisisInicialAirBnb.Rmd"))
 
 Con esto tendremos los datos cargados y en su formato correspondiente.
 
