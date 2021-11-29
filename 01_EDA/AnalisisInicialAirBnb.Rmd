@@ -136,14 +136,10 @@ A continuación convertiremos los tipos que no son correctos:
 ```{r typeConversion}
 data$host_since <- as.Date(data$host_since)
 
-unique(data$host_is_superhost) # Como la variable es string, comprobaremos cuántos valores hay de cada uno, y los comprobaremos tras la conversión
-count(data[data$host_is_superhost=="t",])
-count(data[data$host_is_superhost=="f",])
-count(data[data$host_is_superhost=="",])
+data %>% count(host_is_superhost) # Como la variable es string, comprobaremos cuántos valores hay de cada uno, convertiremos, y los comprobaremos tras la conversión
+data[data$host_is_superhost=="","host_is_superhost"] <- NA
 data$host_is_superhost <- to_logical(data$host_is_superhost)
-count(data[data$host_is_superhost==TRUE,])
-count(data[data$host_is_superhost==FALSE,])
-
+data %>% count(host_is_superhost)
 data$price<-parse_number(data$price)
 ```
 
