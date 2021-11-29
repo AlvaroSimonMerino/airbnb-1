@@ -42,12 +42,12 @@ ggplot(data, aes(x=room_type, y=price)) + geom_boxplot() + scale_y_continuous(tr
 #### price vs neighbourhood_group_cleansed
 
 ```{r priceVSneigh}
-ggplot(data, aes(x=neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') # CHECK: relevant
+ggplot(data, aes(x=neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()# CHECK: relevant
 ```
 
 #### price vs host_since
-```{r priceVSsuperhost}
-ggplot(data, aes(x=host_since, y=price)) + geom_col() + scale_y_continuous(trans='log10') # CHECK: Irrelevant
+```{r priceVShost_since}
+ggplot(data, aes(x=host_since, y=price)) + geom_col() + scale_y_continuous(trans='log10') # CHECK: Irrelevant TODO: agregar por promedio
 ```
 
 

@@ -160,6 +160,15 @@ cuentaMinNightsAvg
 
 ```{r maxNightsAvg}
 ggplot(data, aes(x=maximum_nights_avg_ntm)) + geom_histogram(binwidth = 5)  + scale_y_continuous(trans='log10') + xlim(c(0,2000))
+
+cuentaMaxNightsAvg <- data %>%
+  group_by(maximum_nights_avg_ntm) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaMaxNightsAvg
+
+
 ```
 
 
@@ -180,5 +189,7 @@ ggplot(data, aes(x=host_is_superhost)) + geom_histogram(stat="count")
 #### availability_365
 
 ```{r availability_365}
-ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count")
+ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count") # TODO Profundizar más
+
+sum(data$availability_365==0)
 ```
