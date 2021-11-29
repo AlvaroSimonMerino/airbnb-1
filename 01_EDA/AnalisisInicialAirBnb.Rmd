@@ -30,6 +30,7 @@ La base de datos puede descargarse en el siguiente enlace: http://insideairbnb.c
 
 Las librerias usadas para esta práctica son las siguientes:
 
+ - caret
  - dplyr
  - ggplot2
  - stringr
@@ -134,9 +135,20 @@ A continuación convertiremos los tipos que no son correctos:
 
 ```{r typeConversion}
 data$host_since <- as.Date(data$host_since)
+
+unique(data$host_is_superhost) # Como la variable es string, comprobaremos cuántos valores hay de cada uno, y los comprobaremos tras la conversión
+count(data[data$host_is_superhost=="t",])
+count(data[data$host_is_superhost=="f",])
+count(data[data$host_is_superhost=="",])
 data$host_is_superhost <- to_logical(data$host_is_superhost)
+count(data[data$host_is_superhost==TRUE,])
+count(data[data$host_is_superhost==FALSE,])
+
 data$price<-parse_number(data$price)
 ```
+
+Una vez comprobado que no se han perdido datos tras la conversión, procedemos a revisar el tipo de cada variable:
+
 
 ```{r checkTypes}
 str(data)
@@ -152,9 +164,9 @@ summary(data)
 ```
 Viendo el summary se puede comprobar que:
 
-* $host\_since$ tiene 26 NAs.
+* $host\_since$ tiene 16 NAs.
 
-* $bedrooms$ tiene 1434 NAs.
+* $bedrooms$ tiene 1022 NAs.
 
 * $price$ no tiene NAs, pero el máximo es $9999.0, lo cual no parece verosímil.
 
@@ -162,26 +174,12 @@ Viendo el summary se puede comprobar que:
 
 * Es factible que $availability\_365$ tenga valores a 0, pero altamente improbable. Debemos estudiarlo.
 
-* Hay más de 5000 NA en todas las variables de Review.
+* Hay más de 3000 NA en todas las variables de Review.
 
 
 
 ## 04 Análisis exploratorio de datos
 
-TODO: A partir de aquí trabajaremos en ficheros separados de este, y los enlazaremos aquí.
-
-Katya, a partir de aquí solo enlazaremos otros Rmd en los que trabajaremos por separado. De momento dejo aquí el código que generaste por si lo necesitas:
-
-
-
-Para dividir nuestros datos, veamos en primero cuántas observaciones hay en cada grupo (por distritos de la ciudad)
-```{r}
-data %>% 
-  group_by(neighbourhood_group_cleansed) %>% 
-  count()
-
-```
-<br/>
 
 ### 04.01 Análisis Univariante
 
