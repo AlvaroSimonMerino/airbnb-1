@@ -39,6 +39,7 @@ Las librerias usadas para esta práctica son las siguientes:
  - tidyr
 
 ```{r include=FALSE}
+library(caret)
 library(dplyr)
 library(ggplot2)
 library(stringr)
@@ -71,7 +72,7 @@ Dado que la base de datos elegida está relacionada con el alquiler de viviendas
 5. Entrenar el modelo matemático de regresión múltiple para la predicción de la varaible precio.
 <br/>
 
-## 02 Ingesta y limpieza de datos
+## 02 Ingesta de datos
 
 Según el diccionario de datos proporcionado con los mismos, se adjunta el significado de cada variable de interés a extraer:
 
@@ -107,10 +108,25 @@ Procedemos a extraer los datos de nuestras variables de interés del fichero $.c
 ```{r loadData}
 RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 #summary(RawData)
-data <- RawData #%>%
+#data <- RawData #%>%
   #select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
-str(data)
+#str(data)
 ```
+
+
+## 3 Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 4 Conversión de tipos incorrectos
 
 En primer lugar, comprobamos que nuestro conjunto de datos tiene 22 variables, aunque no todas han sido clasificadas con el tipo que esperaríamos. $host\_since$ debería ser fecha, $host\_is\_superhost$ debería ser un booleano y $price$ debería ser numérico.
 
