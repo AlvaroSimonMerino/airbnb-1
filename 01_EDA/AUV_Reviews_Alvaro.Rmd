@@ -1,0 +1,184 @@
+---
+title: "EDA_Variable ratings"
+author: "Alvaro Simón Merino"
+date: "02/12/2021"
+output:
+  html_document:
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+  pdf_document: 
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+---
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Librerias (no copiar al archivo principal)
+
+```{r include=FALSE}
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(batman)
+library(knitr)
+library(tidyr)
+```
+<br/>
+
+
+Cargamos los datos (no copiar al archivo principal)
+
+```{r loadData}
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+#summary(RawData)
+#data <- RawData #%>%
+  #select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
+#str(data)
+```
+<br/>
+
+Separación Train-Test (no copiar al archivo principal)
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+<br/>
+
+Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas
+
+- $review\_scores\_rating$
+- $review\_scores\_accuracy$
+- $review\_scores\_cleanliness$
+- $review\_scores\_checkin$
+- $review\_scores\_communication$
+- $review\_scores\_location$
+- $review\_scores\_value$
+- $reviews\_per\_month$
+
+#### Variable:review_scores_rating
+
+```{r rating}
+ggplot(data, aes(x=review_scores_rating)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_rating) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:review_scores_accuracy
+
+```{r rating}
+ggplot(data, aes(x=review_scores_accuracy)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_accuracy) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:review_scores_cleanliness
+
+```{r rating}
+ggplot(data, aes(x=review_scores_cleanliness)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_cleanliness) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:review_scores_checkin
+
+```{r rating}
+ggplot(data, aes(x=review_scores_checkin)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_checkin) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:review_scores_communication
+
+```{r rating}
+ggplot(data, aes(x=review_scores_communication)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_communication) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:review_scores_location
+
+```{r rating}
+ggplot(data, aes(x=review_scores_location)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_location) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:review_scores_value
+
+```{r rating}
+ggplot(data, aes(x=review_scores_value)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(review_scores_value) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>
+
+#### Variable:reviews_per_month
+
+```{r rating}
+ggplot(data, aes(x=reviews_per_month)) + geom_histogram(stat='count')
+
+rating <- data %>%
+  group_by(reviews_per_month) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+rating
+```
+<br/>

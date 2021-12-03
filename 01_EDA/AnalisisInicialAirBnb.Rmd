@@ -115,7 +115,7 @@ RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 ```
 
 
-## 3 Separación Train-Test
+## 03 Separación Train-Test
 
 ```{r split}
 
@@ -127,7 +127,7 @@ data_test <- slice(RawData, -inTraining)
 
 ```
 
-## 4 Conversión de tipos incorrectos
+## 04 Conversión de tipos incorrectos
 
 En primer lugar, comprobamos que nuestro conjunto de datos tiene 22 variables, aunque no todas han sido clasificadas con el tipo que esperaríamos. $host\_since$ debería ser fecha, $host\_is\_superhost$ debería ser un booleano y $price$ debería ser numérico.
 
@@ -153,7 +153,7 @@ str(data)
 Ahora todos los datos están en el formato correcto.
 
 
-## 03 Estudio de valores faltantes
+## 05 Estudio de valores faltantes
 
 ```{r summary}
 summary(data)
@@ -174,10 +174,10 @@ Viendo el summary se puede comprobar que:
 
 
 
-## 04 Análisis exploratorio de datos
+## 06 Análisis exploratorio de datos
 
 
-### 04.01 Análisis Univariante
+### 06.01 Análisis Univariante
 
 #### Variable: price
 
@@ -186,9 +186,9 @@ Viendo el summary se puede comprobar que:
 
 ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red")
 
-ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red") + xlim(c(0,500))
+ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth=10, fill="#69b3a2", color="#e9ecef", alpha=0.9) + geom_density(alpha = .3, fill="orange") + xlim(c(0,500))
 
-ggplot(data, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+ggplot(data, aes(y=price)) + geom_boxplot(varwidth = TRUE, alpha=0.2) + scale_y_continuous(trans='log10')
 
 quantile(data$price)
 ```
@@ -335,7 +335,7 @@ ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count")
 ```
 <br/>
 
-### 04.02 Análisis Multivariante
+### 06.02 Análisis Multivariante
 
 #### Variables: price vs room_type
 
@@ -442,13 +442,13 @@ ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() 
 ```
 <br/>
 
-### 05. Análisis detallado multivariante del precio
+### 07. Análisis detallado multivariante del precio
 
 
-#### 05.1 Subdivisión en categorías
+#### 07.1 Subdivisión en categorías
 
 
-##### 05.1.1 Ajustar al número de camas:
+##### 07.1.1 Ajustar al número de camas:
 
 ```{r priceperperson}
 data$price_per_person = data$price/data$accommodates
