@@ -208,3 +208,60 @@ ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count") # TODO Prof
 
 sum(data$availability_365==0)
 ```
+
+
+## 5. Outliers
+
+
+```{r outliers}
+
+outliers <- data[data$price > quantile(data$price)[4],]
+
+count(outliers)
+
+ggplot(outliers, aes(x=price)) + geom_histogram(binwidth = 10)
+
+ggplot(outliers, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
+
+outliers <- outliers %>% mutate(pricePP = price/accommodates)
+
+quantile(outliers$pricePP)
+
+outliersPerPerson <- outliers[(outliers$pricePP) > quantile(outliers$pricePP)[4],]
+
+ggplot(outliersPerPerson, aes(y=pricePP)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
+
+count(outliersPerPerson[outliersPerPerson$pricePP > 1000, ])
+
+head(outliersPerPerson[outliersPerPerson$pricePP > 1000, "description"])
+
+insane <- outliersPerPerson[outliersPerPerson$pricePP > 1000,]
+
+count(insane)
+
+summary(insane)
+
+ggplot(insane, aes(x=price)) + geom_histogram()
+
+cuentaDistritosInsane <- insane %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+ggplot(insane, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count')
+
+ggplot(insane, aes(x=room_type, y=pricePP)) + geom_boxplot()
+
+insane$accommodates
+
+insane$pricePP
+
+insane[insane$neighbourhood_group_cleansed=="Villaverde", c("description","price")]
+
+insane$reviews_per_month
+
+# TODO Yo todo lo que supere los 105-150€/persona lo quitaba
+
+```
+
+Yo todo lo que supere los 105-150€/persona lo quitaba
