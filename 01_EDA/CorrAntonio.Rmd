@@ -17,6 +17,8 @@ knitr::opts_chunk$set(echo = TRUE)
 library(caret)
 library(dplyr)
 library(ggplot2)
+library(ggmap)
+library(RgoogleMaps)
 library(stringr)
 library(readr)
 library(batman)
@@ -50,9 +52,7 @@ data$price<-parse_number(data$price)
 ## 4. Sustitución de NA's
 ```{r nas}
 
-ggplot(data, aes(x=longitude,y=latitude)) + geom_point(aes(colour=price)) + scale_color_gradient(low = "blue", high = "red")
 
-ggplot(data, aes(x=longitude,y=latitude)) + geom_point(aes(colour=pricePP)) + scale_color_gradient(low = "blue", high = "red")
 
 ```
 
@@ -115,10 +115,21 @@ summary(lm_fit) #Pasa algo muy interesante: al separar el Wanda del resto, la lo
 
 ```{r mapa}
 
-mid <- mean(data$pricePP)
+ggplot(data, aes(x=longitude,y=latitude)) + geom_sf()
 
 ggplot(data, aes(x=longitude,y=latitude)) + geom_point(aes(colour=price)) + scale_color_gradient(low = "blue", high = "red")
 
 ggplot(data, aes(x=longitude,y=latitude)) + geom_point(aes(colour=pricePP)) + scale_color_gradient(low = "blue", high = "red")
 
+
+meanPriceByDistrict <- data %>% group_by(neighbourhood_group_cleansed) %>% summarize(mean_price = mean(pricePP), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
+
+
+
+
+meanPriceByNB <- data %>% group_by(neighbourhood_cleansed) %>% summarize(mean_price = mean(pricePP), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByNB, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
 ```
