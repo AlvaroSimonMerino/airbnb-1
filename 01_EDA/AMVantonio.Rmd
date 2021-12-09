@@ -141,3 +141,16 @@ pricevsavailability_365 <- data %>%
 
 ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() # CHECK: can seasonality be borrowed from here and scraping date?
 ```
+
+
+#### reviews_per_month vs price
+
+```{r priceVSreviews_per_month}
+ggplot(data, aes(x=reviews_per_month, y=price)) + geom_point()
+```
+
+#### review_scores_rating vs price
+
+```{r priceVSreview_scores_rating}
+ggplot(data, aes(x=review_scores_rating, y=price)) + geom_point()
+```
