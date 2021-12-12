@@ -3,9 +3,9 @@ title: "FAD_DataAnalysis_practica"
 author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "13/11/2021"
 output:
-  html_document:
+  html_document: 
     theme: united
-    code_folding: "hide"
+    code_folding: hide
     toc: yes
     toc_float: yes
   pdf_document: 
@@ -92,6 +92,7 @@ Según el diccionario de datos proporcionado con los mismos, se adjunta el signi
 - $minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
 - $maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
 - $availability\_365$: disponibilidad del espacio durante los próximos 365 días.
+- $reviews\_per\_month$: El número de reviews de la base de datos en relación al tiempo que abarca.
 
 Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas: (TODO: revisar esto en alguna otra parte)
 
@@ -102,7 +103,7 @@ Las siguientes variables no aparecen en el diccionario, por lo que entramos a va
 - $review\_scores\_communication$
 - $review\_scores\_location$
 - $review\_scores\_value$
-- $reviews\_per\_month$
+
 
 Procedemos a extraer los datos de nuestras variables de interés del fichero $.csv$:
 
@@ -188,7 +189,7 @@ ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom
 
 ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth=10, fill="#69b3a2", color="#e9ecef", alpha=0.9) + geom_density(alpha = .3, fill="orange") + xlim(c(0,500))
 
-ggplot(data, aes(y=price)) + geom_boxplot(varwidth = TRUE, alpha=0.2) + scale_y_continuous(trans='log10')
+ggplot(data, aes(y=price)) + geom_boxplot(varwidth = TRUE, alpha=0.2, col="orange") + scale_y_continuous(trans='log10')
 
 quantile(data$price)
 ```
@@ -442,13 +443,13 @@ ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() 
 ```
 <br/>
 
-### 07. Análisis detallado multivariante del precio
+## 07. Análisis detallado multivariante del precio
 
 
-#### 07.1 Subdivisión en categorías
+### 07.1 Subdivisión en categorías
 
 
-##### 07.1.1 Ajustar al número de camas:
+#### 07.1.1 Ajustar al número de camas:
 
 ```{r priceperperson}
 data$price_per_person = data$price/data$accommodates
@@ -460,7 +461,7 @@ ggplot(data, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_co
 ```
 <br/>
 
-#### Variables: neighbourhood_group_cleansed
+##### Variables: neighbourhood_group_cleansed
 
 ```{r priceperbedVSneigh}
 ggplot(data, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()
