@@ -108,7 +108,7 @@ Veamos la estructura del conjunto de datos para la correspondencia de los tipos 
 str(data)
 ```
 
-Vemos que los tipos de datos de variables, como *host_since*, *last_review*, *host_is_superhost*, *price*, no coinciden con su contenido. Tambien en las variables (*host_since*, *host_is_superhost*, *neighbourhood*, *last_review*)  hay valores perdidos, que los denotamos como NA.
+Vemos que los tipos de datos de variables, como *host_since*, *last_review*, *host_is_superhost*, *price*, no coinciden con su contenido. Tambien en las variables (*host_since*, *host_is_superhost*, *description*, *last_review*)  hay valores perdidos, que los denotamos como NA.
 Transformamos estos datos a ciertos formatos.
    - formato *Date* para *host_since*, *last_review*, valores perdidos van denotarse como NA
 ```{r date}
@@ -164,6 +164,7 @@ matrixplot(data)
 En nuestro caso, no solo nos interesa la fecha de registro del propietario de la propiedad inmobiliaria en airbnb y la fecha de la última revisión, sino que nos interesa directamente la experiencia del propietario sobre el recurso y cuánto tiempo ha pasado desde la ultima revision de la propiedad.
 Cuanta más experiencia tiene un vendedor, más confianza tienen los consumidores en él y, en consecuencia, más demanda, lo que tiene un efecto positivo en el precio. Las reseñas antiguas sobre el alojamiento llevan poca información para los consumidores, aumentan sus riesgos y, en consecuencia, la demanda cae, lo que afecta negativamente al precio.
 
+
 Por lo tanto, en lugar de una variable, calcularemos la variable de la experiencia del propietario en el recurso *host_exp_days* (el número de días) y reemplazaremos la variable de la fecha de la última revocación por la variable del número de días desde la última revocación *last_review_days*.
 
 ```{r transform}
@@ -173,6 +174,7 @@ data$last_review_days <- as.integer(max(data$last_review, na.rm = TRUE)-data$las
 data$host_since <- NULL
 data$last_review <- NULL
 ```
+
 
 También nos interesará el número de alojamientos que tiene cada propietario.
 Сalcularemos y anadimos la variable *host_listings_count*.
@@ -189,10 +191,9 @@ data$price_per_person <- data$price/data$accommodates
 ```
 
 El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis. Pero esta variable sirve para calcular numero de listing que tiene un host. 
-```{r del id}
+```{r id null}
 data$id <- NULL
 ```
-
 
 ### Divicion de los datos
 
@@ -256,6 +257,7 @@ print(cor(y))
 ```  
 
 ```{r datos faltantes train, echo=FALSE}
+
 colSums(is.na(data_train_del_na))
 aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE)
 ``` 
@@ -273,7 +275,9 @@ high.corr<-function(x){
   return(rownames(inds))
 }
 
+
 high.corr(data_train_del_na)
+
 ``` 
 
 Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`).
@@ -307,6 +311,7 @@ Utilizando este paquete, podemos imputar datos faltantes para todas variables, q
 Resultatos para *random forest*.
 
 ```{r datos imp rf, echo=FALSE}
+
 miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)  
 miceOutput <- complete(miceMod)
 ``` 
@@ -378,12 +383,14 @@ Vemos, que valores atipicos pueden tener variables *accommodates*, *bedrooms*, *
 Construyamos gráficos.
 
 ```{r datos acc graph, echo=FALSE}
+
 plot(data_train_del_na$accommodates)
 
 ggplot(data = data_train_del_na) + 
    aes(x = accommodates) + 
    geom_boxplot(outlier.colour = "Red", fill = "orange") + 
    theme_bw()
+
 
 ggplot(data = data_train_del_na) + 
    aes(x = accommodates) + 
@@ -403,6 +410,7 @@ ggplot(data = data_train_del_na) +
    aes(x = bedrooms) + 
    geom_boxplot(outlier.colour = "Red", fill = "green") + 
    theme_bw()
+
 
 ggplot(data = data_train_del_na) + 
    aes(x = bedrooms) + 
@@ -462,6 +470,7 @@ ggplot(data = data_train_clean) +
    geom_boxplot(outlier.colour = "Red", fill = "blue") + 
    theme_bw()
 
+
 ggplot(data = data_train_clean) + 
    aes(x = price) + 
    geom_dotplot(dotsize = 0.1,color = "red") +
@@ -511,6 +520,23 @@ ggplot(data = data_train_clean) +
    theme_bw()
 ``` 
 
+#### Valores atipicos de variable minimum_nights
+
+Construyamos gráficos.
+
+```{r datos m_n graph, echo=FALSE}
+plot(data_train$minimum_nights)
+
+ggplot(data = data_train) + 
+   aes(x = minimum_nights) + 
+   geom_boxplot(outlier.colour = "Red", fill = "yellow") + 
+   theme_bw()
+
+ggplot(data = data_train) + 
+   aes(x = minimum_nights) + 
+   geom_dotplot(dotsize = 0.1,color = "violet") +
+   theme_minimal()
+``` 
 
 
 #### Valores atipicos de variable reviews_per_month
@@ -518,12 +544,12 @@ ggplot(data = data_train_clean) +
 Construyamos gráficos.
 
 ```{r datos r_m gr, echo=FALSE}
-plot(data_train_clean$reviews_per_month)
 
-ggplot(data = data_train_clean) + 
+plot(data_train_clean$reviews_per_month)
    aes(x = reviews_per_month) + 
    geom_boxplot(outlier.colour = "Red", fill = "violet") + 
    theme_bw()
+
 
 ggplot(data = data_train_clean) + 
    aes(x = reviews_per_month) + 
@@ -536,6 +562,7 @@ ggplot(data = data_train_clean) +
 Construyamos gráficos.
 
 ```{r datos l_r graph, echo=FALSE}
+
 plot(data_train_clean$last_review_days)
 
 ggplot(data = data_train_clean) + 
@@ -543,11 +570,13 @@ ggplot(data = data_train_clean) +
    geom_boxplot(outlier.colour = "Red", fill = "orange") + 
    theme_bw()
 
+
 ggplot(data = data_train_clean) + 
    aes(x = last_review_days) + 
    geom_dotplot(dotsize = 0.1,color = "navy") +
    theme_minimal()
 ``` 
+
 
 #### Valores atipicos de variable host_listings_count
 
@@ -591,3 +620,4 @@ summary(data_train_clean)
 En resumen eleminamos valores atipicos para variables *minimum_nights*, *price_per_person*, *host_listings_count*.
 
 #write_csv(data_train_clean, file = "data_train_clean.csv")
+
