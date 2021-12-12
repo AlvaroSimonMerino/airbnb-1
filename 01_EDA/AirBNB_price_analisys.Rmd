@@ -1,0 +1,593 @@
+---
+title: "AirBNB Madrid price analisys"
+author: "Katsiaryna Zaitsava, Antonio Fernández Cáceres, Alvaro Simón Merino"
+date: "`r format(Sys.Date(), '%d de %B de %Y')`"
+header-includes:
+- \usepackage{fancyhdr}
+- \pagestyle{fancy}
+- \fancyhead[L]{Fundamentos de Análisis de Datos}
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE,message = FALSE,warning = FALSE}
+# aquí ponemos los paquetes que vayamos necesitando
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+library(tidyr)
+library(ggplot2)
+library(PASWR2)
+library(scales)
+library(nortest)
+library(cowplot)
+library(dplyr)
+library(stringr)
+library(caret)
+library(batman)
+library(readr)
+library(mice)
+library(VIM)
+library(corrplot)
+library(psych)
+library(ipred)
+library(DMwR)
+library(car)
+```
+
+## Introducion
+El turismo es una de las principales actividades economicas en España, antes del COVID-19 formaba una media de alrededor del 15,0% del PIB anual. Además, si tenemos en cuenta los tipos de actividades económicas adyacentes, la contribución del turismo será mucho mayor.
+
+El turismo también es el generador de empleo más importante en España, con 2,83 millones de trabajadores turísticos registrados en 2019. De este modo, supera al sector salud con 2,71 millones de trabajadores, pero va por detrás del comercio con 3,19 millones. Sin embargo, el turismo ocupa el primer lugar en cuanto a empleo indirecto, con 1,87 millones de trabajadores, lo que representa el 66% del total de puestos de trabajo creados en el sector. Este indicador está impulsado por la gran cantidad de subsectores relacionados con el turismo y empresas auxiliares.
+
+La actividad principal del turismo depende en gran medida de los servicios de alojamiento (hoteles, campings o casas) representados por los agregadores de reservas y alquileres más grandes, como Booking y Airbnb. En las condiciones actuales, muchas personas podrían quedarse sin trabajo, y una de las posibles opciones para ganar dinero en el contexto de la reducción de las restricciones en España es el alquiler de viviendas a turistas.
+
+El autoempleo de la población en el ámbito del alojamiento turístico se manifiesta más claramente en el portal de Airbnb. Nuestro principal objetivo es predecir el precio del alquiler para futuros o actuales propietarios en Madrid, independientemente del factor estacional. Porque para los propietarios, el factor tiempo afecta relativamente de la misma manera, los días de alta demanda con oferta limitada aumentan los precios de alquiler (vacaciones, temporada turística, etc.). Con base en el precio previsto, el propietario podrá determinar el precio de alquiler de su propiedad, averiguar los factores que más afectan el precio de alquiler.
+
+## Plan de estudio
+Vamos a trabajar con el dataset *listings.csv* (Airbnb Madrid, 2021-09-10).
+
+Pasos:
+
+1. Preparacion de los datos.
+2. Divicion de los datos en 70% para grupo de training y 30% para grupo de testing.
+   Sobre el dataset de training:
+   - transformar las variables, imputar datos (si procede);
+   - proponer un modelo inicial (e.g. regresión lineal);
+   - evaluar inicialmente el modelo mediante los resultados básicos ofrecidos      por summary(model).
+   
+   Sobre el dataset de testing:
+   - transformar las variables, imputar datos (si procede), siguiendo las         mismas operaciones que para el caso de training;
+   - usar el modelo propuesto para predecir el precio de alquiler, usando         para ello el dataset de testing;
+   - comparar con los datos de la columna real price en los datos de testing,      para comprobar el porcentaje de aciertos/fallos;
+   - decidir siguiendo criterios contrastados (con la teoría vista hasta el       momento), qué variables incluimos en el modelo predictivo y cuáles no.
+
+## Preparacion de los datos
+
+### Conjunto de datos
+Trabajaremos con el conjunto de datos **RawData**, que contiene informacion sobre listados de Airbnb en Madrid (Espana) (2021-09-10).
+```{r, echo=FALSE}
+RawData <- read.csv("/Users/ekaterinazajceva/Documents/airbnb/00_DatosOriginales/listings.csv")
+```
+Este dataset esta formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables. 
+
+Basandonos en estudios previos sobre un tema similar y un conocimiento preliminar de los datos, seleccionaremos las variables necesarias del conjunto de datos:
+   - id 
+   - host_id
+   - host_since
+   - host_is_superhost
+   - description
+   - neighbourhood_group_cleansed
+   - latitude
+   - longitude
+   - property_type 
+   - room_type 
+   - accommodates
+   - bedrooms 
+   - price
+   - minimum_nights
+   - availability_365
+   - last_review
+   - review_scores_rating
+   - reviews_per_month
+
+Guardamos las variables seleccionadas en un nuevo conjunto de datos *data*.
+```{r datos, echo=FALSE}
+data <- RawData %>%
+   select(id, host_id, host_since, host_is_superhost,
+          description, neighbourhood_group_cleansed, 
+         latitude, longitude, property_type, room_type, 
+         accommodates, bedrooms, price, minimum_nights, 
+         availability_365, last_review, review_scores_rating,                         reviews_per_month)
+```
+
+### Transformacion de datos previa
+
+Veamos la estructura del conjunto de datos para la correspondencia de los tipos de datos con el contenido.
+
+```{r str, echo=FALSE}
+str(data)
+```
+
+Vemos que los tipos de datos de variables, como *host_since*, *last_review*, *host_is_superhost*, *price*, no coinciden con su contenido. Tambien en las variables (*host_since*, *host_is_superhost*, *neighbourhood*, *last_review*)  hay valores perdidos, que los denotamos como NA.
+Transformamos estos datos a ciertos formatos.
+   - formato *Date* para *host_since*, *last_review*, valores perdidos van denotarse como NA
+```{r date}
+data$host_since <- as.Date(data$host_since)
+data$last_review <- as.Date(data$last_review)
+```
+
+   - formato *logical* para *host_is_superhost*, valores perdidos los denotamos como NA
+```{r host super}
+data$host_is_superhost <- as.character(data$host_is_superhost)
+data$host_is_superhost[which(data$host_is_superhost == "")] <- NA
+data$host_is_superhost[which(data$host_is_superhost == "t")] <- "true"
+data$host_is_superhost[which(data$host_is_superhost == "f")] <- "false"
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+```
+
+   - formato *number* para *price*
+```{r price}
+data$price <- as.character(data$price)
+data$price<-parse_number(data$price)
+```
+  
+   - formato *character* para *description*, valores perdidos los denotamos como NA 
+```{r transform NA}
+data$description <- as.character(data$description)
+data$description[which(data$description == "")] <- NA
+```   
+
+Comprobaremos el resultado obtenido.
+
+```{r str 1, echo=FALSE}
+str(data)
+```
+
+Realicemos más transformaciones, eliminemos las líneas para las que el precio es menor o igual a 0, ya que no tiene sentido económico.
+
+```{r subset}
+data <- subset(data, price > 0)
+``` 
+Como resultado, el conjunto de datos ha disminuido en 8 observaciones.
+
+Veamos el número total de valores perdidos para las variables.
+```{r datos faltantes total, echo=FALSE}
+colSums(is.na(data))
+aggr(data, numbers=TRUE, sortVars=TRUE)
+``` 
+
+```{r matrixplot, echo=FALSE}
+matrixplot(data)
+``` 
+
+
+En nuestro caso, no solo nos interesa la fecha de registro del propietario de la propiedad inmobiliaria en airbnb y la fecha de la última revisión, sino que nos interesa directamente la experiencia del propietario sobre el recurso y cuánto tiempo ha pasado desde la ultima revision de la propiedad.
+Cuanta más experiencia tiene un vendedor, más confianza tienen los consumidores en él y, en consecuencia, más demanda, lo que tiene un efecto positivo en el precio. Las reseñas antiguas sobre el alojamiento llevan poca información para los consumidores, aumentan sus riesgos y, en consecuencia, la demanda cae, lo que afecta negativamente al precio.
+
+Por lo tanto, en lugar de una variable, calcularemos la variable de la experiencia del propietario en el recurso *host_exp_days* (el número de días) y reemplazaremos la variable de la fecha de la última revocación por la variable del número de días desde la última revocación *last_review_days*.
+
+```{r transform}
+data$host_exp_days <- as.integer(max(data$host_since, na.rm = TRUE)-data$host_since)
+data$last_review_days <- as.integer(max(data$last_review, na.rm = TRUE)-data$last_review)
+
+data$host_since <- NULL
+data$last_review <- NULL
+```
+
+También nos interesará el número de alojamientos que tiene cada propietario.
+Сalcularemos y anadimos la variable *host_listings_count*.
+
+```{r transform listings count}
+data <- data %>%
+  add_count(host_id)
+colnames(data)[colnames(data) == 'n'] <- 'host_listings_count'
+```
+
+Además del precio total del alquiler del alojamiento, estaremos interesados en el precio del alquiler por persona *price_per_person*.
+```{r transform price/person}
+data$price_per_person <- data$price/data$accommodates
+```
+
+El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis. Pero esta variable sirve para calcular numero de listing que tiene un host. 
+```{r del id}
+data$id <- NULL
+```
+
+
+### Divicion de los datos
+
+Ahora podemos dividir nuestros datos en 70% para grupo de training y 30% para grupo de testing. Dividiremos los datos en base a la agrupación por las regiones ampliadas de Madrid (*neighbourhood_group_cleansed*).
+
+```{r slice}
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data_train <- slice(data, inTraining) 
+data_test <- slice(data, -inTraining)
+```
+
+Obtuvimos  `r nrow(data_train)` observaciones en el conjunto de datos *data_train* y  `r nrow(data_test)` en el conjunto de datos *data_test*.
+
+## Analisys de variables
+
+### Imputacion los datos faltantes
+
+Mostramos el gráfico de la distribución del número de valores perdidos.
+
+```{r grafico, echo=FALSE,fig.width=5.5,fig.height=3.5}
+na_vis <- data.frame(t(colSums(is.na(data_train))))
+na_bar <- data.frame(Features = names(na_vis),totals=colSums(na_vis))
+
+na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features, label = totals))+
+  geom_bar(stat = "identity")+
+  ggtitle("NA Distribution")+
+  xlab("Features")+
+  ylab("Total NAs")+
+  coord_flip()+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+md.pattern(data_train)
+``` 
+
+
+Tenemos una pequeña cantidad de valores faltantes en *host_is_superhost* y *host_exp_days*, solo 19 observaciones. En este caso, los valores faltantes se pueden reemplazar directamente:
+   - NA = false para *host_is_superhost*;
+   - NA = 0 para *host_exp_days*
+ 
+```{r na min}
+# en primero vamos a guardardatos modificados en nuevo dataset data_train_del_na para tener accesso de datos previos
+
+data_train_del_na <- data_train
+data_train_del_na$host_is_superhost[which(is.na(data_train_del_na$host_is_superhost))] <- FALSE
+data_train_del_na$host_exp_days[which(is.na(data_train_del_na$host_exp_days))] <- 0
+```  
+
+Construyamos una matriz de correlación de valores NA para otros variables (*neighbourhood*, *bedrooms*, *review_scores_rating*,  *reviews_per_month*, *last_review_days*).
+
+```{r cor na}
+x <- as.data.frame(abs(is.na(data_train_del_na)))
+y <- x[, which(colSums(x) > 0)]
+
+print(cor(y))
+```  
+
+```{r datos faltantes train, echo=FALSE}
+colSums(is.na(data_train_del_na))
+aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE)
+``` 
+
+Vemos que para las mismas observaciones existen valores para las variables *review_scores_rating*,  *reviews_per_month*, *last_review_days*. Para estas variables faltan 26,6% de observaciones y para *bedrooms* - 7,5%.
+
+Para seleccionar un método para completar los valores faltantes, primero definimos variables altamente correlacionadas que pueden conducir a una multicolinealidad y, en consecuencia, la imposibilidad de utilizar unos métodos de cálculo.
+
+```{r datos high corr,  echo=FALSE}
+high.corr<-function(x){
+  df<-x[sapply(x,is.numeric)]
+  fit<-corr.test(df)
+  diag(fit$r)<-0
+  inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
+  return(rownames(inds))
+}
+
+high.corr(data_train_del_na)
+``` 
+
+Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`).
+
+#### Imputacion por regresion
+
+Intentamos imputar datos faltantes de variable *bedrooms* usando regresion lineal, como sabemos que hay correlacion alta entre esta variable y variable *accommodates*.
+
+```{r datos na line,  echo=FALSE}
+fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
+summary(fit)
+``` 
+
+Vemos que los coeficientes de regresión lineal son significativos, sin embargo, R es lo suficientemente pequeño y explica solo el 47,6% de variación.
+
+Veamos en qué se diferencian los valores predichos de los originales. 
+
+```{r datos na line result,  echo=FALSE}
+actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
+pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
+regr.eval(actuals, pred_lm)
+``` 
+El error porcentual absoluto medio (mape) fue 26,4%, que es un indicador insatisfactorio. Probamos otros methodos.
+
+#### Imputacion con paquete mice
+
+Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra vamos usar methodos *rf* y *cart* de paquete *mice*. Los métodos de imputación predeterminados de  *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se puede invertir y dará como resultado su error.
+
+Utilizando este paquete, podemos imputar datos faltantes para todas variables, quales tienen NA.
+
+Resultatos para *random forest*.
+
+```{r datos imp rf, echo=FALSE}
+miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)  
+miceOutput <- complete(miceMod)
+``` 
+
+Comprobamos, si hay algunos NA en conjunto de datos.
+
+```{r datos imp rf na, echo=FALSE}
+anyNA(miceOutput) # False
+``` 
+
+Pues en output no tenemos datos faltantes.
+Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales. Mostramos el gráfico *densityplot*.
+
+```{r datos imp rf graph, echo=FALSE}
+densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+``` 
+
+Resultatos para *cart* (classification and regression trees).
+
+```{r datos imp cart, echo=FALSE}
+miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)  
+miceOutput_cart <- complete(miceMod_cart)
+``` 
+
+Comprobamos, si hay algunos NA en conjunto de datos.
+
+```{r datos imp cart na, echo=FALSE}
+anyNA(miceOutput_cart) # False
+``` 
+
+Pues en output no tenemos datos faltantes.
+Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales. Mostramos el gráfico *densityplot*.
+
+```{r datos imp cart graph, echo=FALSE}
+densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+``` 
+
+Nos vemos que datos imputados son muy cercanos de lo datos observados, pero mejor resultado para variables lo da el methodo *cart*. Usamos este methodo para nuestras variables con NA.
+
+```{r datos imputacion, echo=FALSE}
+data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
+
+data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
+
+data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"]
+
+data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"]
+``` 
+
+Veamos, si hemos han imputado todos datos faltantes en nuestro conjunto de datos *data_train*.
+```{r datos cart na, echo=FALSE}
+colSums(is.na(data_train_del_na)) # False
+``` 
+
+En resultado ya tenemos *data_train* sin datos faltantes y podemos mas eficaz trabajar con el.
+
+### Deteccion de valores atipicos
+
+Comprobamos si hay algunos datos atipicos en nuestro conjunto de datos.
+
+```{r datos sum, echo=FALSE}
+summary(data_train_del_na)
+``` 
+
+Vemos, que valores atipicos pueden tener variables *accommodates*, *bedrooms*, *price*, *minimum_nights*, *reviews_per_month*, *last_review_days*, *host_listings_count*, *price_per_person*. Revisamos estas variables mas detallado.
+
+#### Valores atipicos de variable accommodates
+
+Construyamos gráficos.
+
+```{r datos acc graph, echo=FALSE}
+plot(data_train_del_na$accommodates)
+
+ggplot(data = data_train_del_na) + 
+   aes(x = accommodates) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+
+ggplot(data = data_train_del_na) + 
+   aes(x = accommodates) + 
+   geom_dotplot(dotsize = 0.1,color = "green") +
+   theme_minimal()
+``` 
+
+
+#### Valores atipicos de variable bedrooms
+
+Construyamos gráficos.
+
+```{r datos b graph, echo=FALSE}
+plot(data_train_del_na$bedrooms)
+
+ggplot(data = data_train_del_na) + 
+   aes(x = bedrooms) + 
+   geom_boxplot(outlier.colour = "Red", fill = "green") + 
+   theme_bw()
+
+ggplot(data = data_train_del_na) + 
+   aes(x = bedrooms) + 
+   geom_dotplot(dotsize = 0.1,color = "blue") +
+   theme_minimal()
+``` 
+
+
+#### Valores atipicos de variable minimum_nights
+
+Construyamos gráficos.
+
+```{r datos m_n graph, echo=FALSE}
+plot(data_train_del_na$minimum_nights)
+
+ggplot(data = data_train_del_na) + 
+   aes(x = minimum_nights) + 
+   geom_boxplot(outlier.colour = "Red", fill = "yellow") + 
+   theme_bw()
+
+ggplot(data = data_train_del_na) + 
+   aes(x = minimum_nights) + 
+   geom_dotplot(dotsize = 0.1,color = "violet") +
+   theme_minimal()
+``` 
+
+Variable de mínimos noches muestra la presencia de valores atípicos, por lo que requiere modificaciones. Como es inusual que las noches mínimas estén por encima de 100 en cualquier airbnb, es claramente un valor atípico y debe eliminarse de nuestros datos.
+
+
+```{r outliers nights, echo=FALSE}
+# en primero vamos a guardardatos modificados en nuevo dataset data_train_clean para tener accesso de datos previos
+
+data_train_clean <- data_train_del_na
+
+uc1 = quantile(data_train_clean$minimum_nights, probs = 0.95, na.rm = TRUE)
+  lc1 = quantile(data_train_clean$minimum_nights, probs = 0.05, na.rm = TRUE)
+  data_train <- subset(data_train_clean, minimum_nights >= lc1 & minimum_nights <= uc1)
+
+summary(data_train_clean$minimum_nights)
+```
+
+```{r datos m_n graph outliers delete, echo=FALSE}
+ggplot(data = data_train_clean) + 
+   aes(x = minimum_nights) + 
+   geom_boxplot(outlier.colour = "Red", fill = "yellow") + 
+   theme_bw()
+``` 
+
+#### Valores atipicos de variable price y price_per_person
+
+Construyamos gráficos.
+```{r datos pr p graph, echo=FALSE}
+plot(data_train_clean$price)
+
+ggplot(data = data_train_clean) + 
+   aes(x = price) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = price) + 
+   geom_dotplot(dotsize = 0.1,color = "red") +
+   theme_minimal()
+``` 
+
+
+```{r datos pr p graph, echo=FALSE}
+plot(data_train_clean$price_per_person)
+
+ggplot(data = data_train_clean) + 
+   aes(x = price_per_person) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = price_per_person) + 
+   geom_dotplot(dotsize = 0.1,color = "red") +
+   theme_minimal()
+``` 
+
+Variable de precios por persona muestra la presencia de valores atípicos, por lo que requiere modificaciones. Como es inusual que la una noche para una persona vale 9000 euros.
+
+```{r outliers price, echo=FALSE}
+
+uc1 = quantile(data_train_clean$price_per_person, probs = 0.95, na.rm = TRUE)
+  lc1 = quantile(data_train_clean$price_per_person, probs = 0.05, na.rm = TRUE)
+  data_train <- subset(data_train_clean, price_per_person >= lc1 & price_per_person <= uc1)
+
+summary(data_train_clean$price_per_person)
+```
+
+```{r outliers pr, echo=FALSE}
+summary(data_train_clean$price)
+```
+
+```{r datos pr graph, echo=FALSE}
+
+ggplot(data = data_train_clean) + 
+   aes(x = price) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = price_per_person) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+``` 
+
+
+
+#### Valores atipicos de variable reviews_per_month
+
+Construyamos gráficos.
+
+```{r datos r_m gr, echo=FALSE}
+plot(data_train_clean$reviews_per_month)
+
+ggplot(data = data_train_clean) + 
+   aes(x = reviews_per_month) + 
+   geom_boxplot(outlier.colour = "Red", fill = "violet") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = reviews_per_month) + 
+   geom_dotplot(dotsize = 0.1,color = "orange") +
+   theme_minimal()
+``` 
+
+#### Valores atipicos de variable last_review_days
+
+Construyamos gráficos.
+
+```{r datos l_r graph, echo=FALSE}
+plot(data_train_clean$last_review_days)
+
+ggplot(data = data_train_clean) + 
+   aes(x = last_review_days) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = last_review_days) + 
+   geom_dotplot(dotsize = 0.1,color = "navy") +
+   theme_minimal()
+``` 
+
+#### Valores atipicos de variable host_listings_count
+
+Construyamos gráficos.
+
+```{r datos coun graph, echo=FALSE}
+plot(data_train_clean$host_listings_count)
+
+ggplot(data = data_train_clean) + 
+   aes(x = host_listings_count) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = host_listings_count) + 
+   geom_dotplot(dotsize = 0.1,color = "navy") +
+   theme_minimal()
+``` 
+
+```{r outliers count, echo=FALSE}
+
+uc1 = quantile(data_train_clean$host_listings_count, probs = 0.95, na.rm = TRUE)
+  lc1 = quantile(data_train_clean$host_listings_count, probs = 0.05, na.rm = TRUE)
+  data_train <- subset(data_train_clean, host_listings_count >= lc1 & host_listings_count <= uc1)
+
+summary(data_train_clean$host_listings_count)
+```
+
+```{r datos c out graph, echo=FALSE}
+ggplot(data = data_train_clean) + 
+   aes(x = host_listings_count) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+```  
+
+
+```{r outliers sresult, echo=FALSE}
+summary(data_train_clean)
+```
+
+En resumen eleminamos valores atipicos para variables *minimum_nights*, *price_per_person*, *host_listings_count*.
+
+#write_csv(data_train_clean, file = "data_train_clean.csv")
