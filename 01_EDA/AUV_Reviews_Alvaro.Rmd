@@ -1,0 +1,258 @@
+---
+title: "EDA_Variable ratings"
+author: "Alvaro Simón Merino"
+date: "06/12/2021"
+output:
+  html_document: 
+    theme: united
+    code_folding: hide
+    toc: yes
+    toc_float: yes
+    fig_width: 9
+    fig_height: 7
+  pdf_document: 
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+---
+
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Librerias (no copiar al archivo principal)
+
+```{r include=FALSE}
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(batman)
+library(knitr)
+library(tidyr)
+library(gridExtra)
+library(GGally)
+library(PASWR2)
+library(scales)
+library(nortest)
+library(cowplot)
+library(mice)
+library(corrplot)
+library(ipred)
+library(heatmaply)
+library(RColorBrewer)
+library(geojsonio)
+library(broom)
+```
+<br/>
+
+
+Cargamos los datos (no copiar al archivo principal)
+
+```{r loadData, warning=FALSE}
+data_train <- read.csv(file = '../01_EDA/data_train_clean.csv', header = TRUE)
+```
+<br/>
+
+Separación Train-Test (no copiar al archivo principal)
+
+```{r setseed, warning=FALSE}
+set.seed(12345)
+```
+<br/>
+
+```{r transformaciones}
+#Variable price
+data_train$price <- as.character(data_train$price)
+data_train$price<-parse_number(data_train$price)
+data_train <- subset(data_train, price > 0)
+summary(data_train$price)
+```
+
+
+Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas
+
+- $review_\scores_\rating$
+- $review_\scores_\accuracy$
+- $review_\scores_\cleanliness$
+- $review_\scores_\checkin$
+- $review_\scores_\communication$
+- $review_\scores_\location$
+- $review_\scores_\value$
+- $reviews_\per_\month$
+
+Vamos a valorar todas las variables 'review' por separado, y luego intentaremos ver su correlación entre ellos y si son combinables. Por último, se hará un análisis multivariante de las variables resultado y de otras variables de importancia.
+Algunas otras variables a estudiar, además de las anteriores mencionadas:
+
+- number_of_reviews (parecería evidente pensar en una relación a priori entre esta variable y price)
+
+También observamos a priori, que se podría hacer una combinación de todas las variables distintas para review/scores haciendo una media, en una sola variable, y después estudiar la relación de esa variable con precio. Sería interesante hacer un análisis multivariante a tres, con las variables price, number_of_reviews y *final_scores (posible variable combinación de todas las otras)
+
+Sería importante determinar también, si por el ejemplo la variable $review_scores_rating$ o la variable $review_scores_value$, son de hecho una combinación de las demás, como la media aritmética de todas las otras. Es importante estudiar esto para que la regresión lineal sea adecuada. Si podemos demostrar que una de estas variables es la media de todas las demás, podriamos simplemente quedarnos con una de estas y descartar el resto. Para ello habrá que estudiar el coeficiente de correlación.
+
+#### Vamos primero a analizar de forma general las variables seleccionadas
+
+```{r data, warning=FALSE}
+scores <- data_train %>%
+  select(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
+
+head(scores)
+summary(scores)
+
+```
+
+Se puede apreciar que todas las variables tienen unas condiciones similares, con una media similar y con un sistema de puntuación númerica similar, excepto en un par de casos. Observamos además que todas tiene alrededor de 3600 NA más o menos. El primer paso sería comprobar si esos NAs coinciden en todas las variables, con respecto al ID, y más adelante determinar si es necesario imputarlos. A continuación, pasamos a analizar cada variable dentro de un conjunto de gráficas agrupadas para facilitar la comparación.
+
+<br/>
+
+
+#### Conjunto de Histogramas de todas las variables
+
+```{r ratings, warning=FALSE}
+rs_rating <- ggplot(scores, aes(x = review_scores_rating, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = '#458B74') + xlab("Rating")+ ylab("count")
+rs_accuracy <- ggplot(scores, aes(x = review_scores_accuracy, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = '#8B2323') + xlab("Accuracy")+ ylab("count")
+rs_cleanliness <- ggplot(scores, aes(x = review_scores_cleanliness, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = 'dodgerblue3') + xlab("Cleanliness")+ ylab("count")
+rs_checkin <- ggplot(scores, aes(x = review_scores_checkin, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = 'darkgoldenrod2') + xlab("Check in")+ ylab("count")
+rs_communication <- ggplot(scores, aes(x = review_scores_communication, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = 'darkolivegreen3') + xlab("Communication")+ ylab("count")
+rs_location <- ggplot(scores, aes(x = review_scores_location, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = '#CD5B45')+ xlab("Location")+ ylab("count")
+rs_value <- ggplot(scores, aes(x = review_scores_value, y=..count..)) + 
+  geom_histogram(binwidth = 0.5, color='black', fill = '#008B8B')+ xlab("Value")+ ylab("count")
+rp_month <- ggplot(scores, aes(x = reviews_per_month, y=..count..)) + 
+  geom_histogram(binwidth = 0.7, fill = '#CD5555') + xlab("Per month")+ ylab("count")
+
+grid.arrange(rs_rating, rs_accuracy, rs_cleanliness, rs_checkin, rs_communication, rs_location, rs_value, rp_month, ncol=4, nrow =2)
+```
+<br/>
+
+Podemos observar que la mayoría de las reviews son positivas, con la mayor concentración de casos entre el 4 y el 5 generalmente.
+Reviews per month tiene un formato poco legible en el eje de las x, vamos a analizarla por separado para entender los datos un poco mejor.
+
+```{r per month, warning=FALSE}
+str(scores$reviews_per_month)
+summary(scores$reviews_per_month)
+rpmonth <- na.omit(scores$reviews_per_month)
+summary(rpmonth)
+
+# Creación del layout para diagramas
+layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,6))
+ 
+# Boxplot e histograma combinados
+par(mar=c(0, 3.1, 1.1, 2.1))
+boxplot(rpmonth , horizontal=TRUE , ylim=c(0,20), xaxt="n" , col=rgb(0.2,0.8,0.5,0.5) , frame=F)
+par(mar=c(4, 3.1, 1.1, 2.1))
+hist(rpmonth , breaks=40 , col='#CD5555' , border=F , main="", ylab="nº reviews", xlab="Media de reviews en 30", xlim=c(0,8))
+
+```
+<br/>
+
+Como podemos apreciar en este gráfico, la mayoria de los airbnb en la base de datos, obtienen entre 0 y 2 reviews por mes de media, con más de 4000 personas con una media de 0.25 reviews por mes. Este resultado tiene sentido, ya que en general las personas suelen estar un par de semanas de vacaciones, y suele haber mayor concetración de turistas en ciertos meses del año. 
+
+#### Análisis Multivariante: variable host_is_superhost
+
+Vamos ahora a estudiar si el ser superhost en airbnb, está relacionado con las distintas variables review. Para ello, primero transformamos la variable host_is_superhost, para imputar valores faltantes y convertir todos los datos a un mismo tipo, true y false, y NA para datos sin contenido.
+
+```{r transf_superhost, warning=FALSE}
+data$host_is_superhost <- as.character(data$host_is_superhost)
+data$host_is_superhost[which(data$host_is_superhost == "")] <- NA
+data$host_is_superhost[which(data$host_is_superhost == "t")] <- "true"
+data$host_is_superhost[which(data$host_is_superhost == "f")] <- "false"
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+```
+<br/>
+
+```{r multi, warning=FALSE}
+rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
+rs_accuracy_sh <- ggplot(data_train, aes(x = review_scores_accuracy, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Accuracy")+ ylab("count")
+rs_cleanliness_sh <- ggplot(data_train, aes(x = review_scores_cleanliness, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Cleanliness")+ ylab("count")
+rs_checkin_sh <- ggplot(data_train, aes(x = review_scores_checkin, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Check in")+ ylab("count")
+rs_communication_sh <- ggplot(data_train, aes(x = review_scores_communication, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Communication")+ ylab("count")
+rs_location_sh <- ggplot(data_train, aes(x = review_scores_location, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Location")+ ylab("count")
+rs_value_sh <- ggplot(data_train, aes(x = review_scores_value, y=..count.., fill = host_is_superhost)) + 
+ geom_histogram(binwidth = 0.5, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Value")+ ylab("count")
+rp_month_sh <- ggplot(data_train, aes(x = reviews_per_month, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 2, position='dodge') + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Per month")+ ylab("count")
+
+grid.arrange(rs_rating_sh, rs_accuracy_sh, rs_cleanliness_sh, rs_checkin_sh, rs_communication_sh, rs_location_sh, rs_value_sh, rp_month_sh, ncol=2, nrow =4)
+
+```
+<br/>
+
+Una de las principales conclusiones de esta comparativa es que los usuarios que son superhost, concentran la mayoría de sus reviews en la máxima puntuación ('5') y en menor medida en la siguiente mejor ('4'), sin reviews prácticamente por debajo de estos números, como cabía esperar, ya que el superhost obtiene esa condición cuando sus reviews son consistentemente altas. Esto implica que la variable host is superhost podria ser interesante a la hora de simplificar las reviews a una opción binaria, puede que se relacione mejor que la variable reviews con la variable precio en el modelo de regresión lineal.
+
+
+```{r rating_sh, warning=FALSE}
+rs_rating_sh <- ggplot(data, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + 
+  geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
+grid.arrange(rs_rating, rs_rating_sh, ncol=2, nrow =1)
+```
+<br/>
+
+#### Analisis multivariante : correlaciones
+
+```{r multianalisis, warning=FALSE}
+high.corr<-function(x){
+  df<-x[sapply(x,is.numeric)]
+  fit<-corr.test(df)
+  diag(fit$r)<-0
+  inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
+  return(rownames(inds))
+}
+
+high.corr(data_train)
+
+corr <- data_train %>% select(price, accommodates, review_scores_rating, neighbourhood_group_cleansed, property_type, room_type, host_is_superhost)
+
+```
+<br/>
+
+```{r heatmap, warning=FALSE}
+heatmap <- data_train %>%
+  select(review_scores_rating, price, neighbourhood_group_cleansed) %>% na.omit(data_train)
+
+csv <- heatmap %>% 
+  group_by(neighbourhood_group_cleansed) %>% 
+  summarise (mean_rating = mean(review_scores_rating), mean_price = mean(price))
+
+head(csv)
+
+#write.table(csv, file = "dataforheatmap.csv",
+#            sep = "\t", row.names = F)
+```
+<br/>
+
+```{r heatmap, warning=FALSE}
+# Matrix format
+mat <- csv
+matriz <- as.matrix(mat)
+
+# Heatmap
+#d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
+
+heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
+```
+<br/>
+
+```{r mapa, warning=FALSE}
+spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
+spdf_fortified <- tidy(spdf)
+# Gráfico de airbnbs localizadas por latitud y longitud
+ggplot(data_train, aes(x=longitude, y=latitude, color=price)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="white", color="black", alpha = 0.5) + theme_void() + coord_map() + geom_point() + ggtitle('Viviendas localizadas según su coordenada') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), color="black", alpha = 0)
+
+```
+
