@@ -621,3 +621,4 @@ En resumen eleminamos valores atipicos para variables *minimum_nights*, *price_p
 
 #write_csv(data_train_clean, file = "data_train_clean.csv")
 
+# hacer lineal
