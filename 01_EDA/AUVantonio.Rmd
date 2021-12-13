@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## 1. Cargar Librerías
 
 ```{r}
+library(caret)
 library(dplyr)
 library(ggplot2)
 library(stringr)
@@ -22,8 +23,22 @@ library(batman)
 ```
 
 ```{r loadData}
-data <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 ```
+
+## 2. Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 3. Conversión de tipos
 
 ```{r typeConversion}
 data$host_since <- as.Date(data$host_since)
@@ -160,6 +175,15 @@ cuentaMinNightsAvg
 
 ```{r maxNightsAvg}
 ggplot(data, aes(x=maximum_nights_avg_ntm)) + geom_histogram(binwidth = 5)  + scale_y_continuous(trans='log10') + xlim(c(0,2000))
+
+cuentaMaxNightsAvg <- data %>%
+  group_by(maximum_nights_avg_ntm) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaMaxNightsAvg
+
+
 ```
 
 
@@ -180,5 +204,64 @@ ggplot(data, aes(x=host_is_superhost)) + geom_histogram(stat="count")
 #### availability_365
 
 ```{r availability_365}
-ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count")
+ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count") # TODO Profundizar más
+
+sum(data$availability_365==0)
 ```
+
+
+## 5. Outliers
+
+
+```{r outliers}
+
+outliers <- data[data$price > quantile(data$price)[4],]
+
+count(outliers)
+
+ggplot(outliers, aes(x=price)) + geom_histogram(binwidth = 10)
+
+ggplot(outliers, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
+
+outliers <- outliers %>% mutate(pricePP = price/accommodates)
+
+quantile(outliers$pricePP)
+
+outliersPerPerson <- outliers[(outliers$pricePP) > quantile(outliers$pricePP)[4],]
+
+ggplot(outliersPerPerson, aes(y=pricePP)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
+
+count(outliersPerPerson[outliersPerPerson$pricePP > 1000, ])
+
+head(outliersPerPerson[outliersPerPerson$pricePP > 1000, "description"])
+
+insane <- outliersPerPerson[outliersPerPerson$pricePP > 1000,]
+
+count(insane)
+
+summary(insane)
+
+ggplot(insane, aes(x=price)) + geom_histogram()
+
+cuentaDistritosInsane <- insane %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+ggplot(insane, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count')
+
+ggplot(insane, aes(x=room_type, y=pricePP)) + geom_boxplot()
+
+insane$accommodates
+
+insane$pricePP
+
+insane[insane$neighbourhood_group_cleansed=="Villaverde", c("description","price")]
+
+insane$reviews_per_month
+
+# TODO Yo todo lo que supere los 105-150€/persona lo quitaba
+
+```
+
+Yo todo lo que supere los 105-150€/persona lo quitaba

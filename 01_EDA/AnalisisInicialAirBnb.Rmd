@@ -3,9 +3,9 @@ title: "FAD_DataAnalysis_practica"
 author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "13/11/2021"
 output:
-  html_document: 
+  html_document:
     theme: united
-    code_folding: hide
+    code_folding: "hide"
     toc: yes
     toc_float: yes
   pdf_document: 
@@ -30,6 +30,7 @@ La base de datos puede descargarse en el siguiente enlace: http://insideairbnb.c
 
 Las librerias usadas para esta práctica son las siguientes:
 
+ - caret
  - dplyr
  - ggplot2
  - stringr
@@ -39,6 +40,7 @@ Las librerias usadas para esta práctica son las siguientes:
  - tidyr
 
 ```{r include=FALSE}
+library(caret)
 library(dplyr)
 library(ggplot2)
 library(stringr)
@@ -71,7 +73,7 @@ Dado que la base de datos elegida está relacionada con el alquiler de viviendas
 5. Entrenar el modelo matemático de regresión múltiple para la predicción de la varaible precio.
 <br/>
 
-## 02 Ingesta y limpieza de datos
+## 02 Ingesta de datos
 
 Según el diccionario de datos proporcionado con los mismos, se adjunta el significado de cada variable de interés a extraer:
 
@@ -90,7 +92,6 @@ Según el diccionario de datos proporcionado con los mismos, se adjunta el signi
 - $minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
 - $maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
 - $availability\_365$: disponibilidad del espacio durante los próximos 365 días.
-- $reviews\_per\_month$: El número de reviews de la base de datos en relación al tiempo que abarca.
 
 Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas: (TODO: revisar esto en alguna otra parte)
 
@@ -101,17 +102,32 @@ Las siguientes variables no aparecen en el diccionario, por lo que entramos a va
 - $review\_scores\_communication$
 - $review\_scores\_location$
 - $review\_scores\_value$
-
+- $reviews\_per\_month$
 
 Procedemos a extraer los datos de nuestras variables de interés del fichero $.csv$:
 
 ```{r loadData}
 RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 #summary(RawData)
-data <- RawData #%>%
+#data <- RawData #%>%
   #select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
-str(data)
+#str(data)
 ```
+
+
+## 03 Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 04 Conversión de tipos incorrectos
 
 En primer lugar, comprobamos que nuestro conjunto de datos tiene 22 variables, aunque no todas han sido clasificadas con el tipo que esperaríamos. $host\_since$ debería ser fecha, $host\_is\_superhost$ debería ser un booleano y $price$ debería ser numérico.
 
@@ -119,9 +135,16 @@ A continuación convertiremos los tipos que no son correctos:
 
 ```{r typeConversion}
 data$host_since <- as.Date(data$host_since)
+
+data %>% count(host_is_superhost) # Como la variable es string, comprobaremos cuántos valores hay de cada uno, convertiremos, y los comprobaremos tras la conversión
+data[data$host_is_superhost=="","host_is_superhost"] <- NA
 data$host_is_superhost <- to_logical(data$host_is_superhost)
+data %>% count(host_is_superhost)
 data$price<-parse_number(data$price)
 ```
+
+Una vez comprobado que no se han perdido datos tras la conversión, procedemos a revisar el tipo de cada variable:
+
 
 ```{r checkTypes}
 str(data)
@@ -130,16 +153,16 @@ str(data)
 Ahora todos los datos están en el formato correcto.
 
 
-## 03 Estudio de valores faltantes
+## 05 Estudio de valores faltantes
 
 ```{r summary}
 summary(data)
 ```
 Viendo el summary se puede comprobar que:
 
-* $host\_since$ tiene 26 NAs.
+* $host\_since$ tiene 16 NAs.
 
-* $bedrooms$ tiene 1434 NAs.
+* $bedrooms$ tiene 1022 NAs.
 
 * $price$ no tiene NAs, pero el máximo es $9999.0, lo cual no parece verosímil.
 
@@ -147,28 +170,14 @@ Viendo el summary se puede comprobar que:
 
 * Es factible que $availability\_365$ tenga valores a 0, pero altamente improbable. Debemos estudiarlo.
 
-* Hay más de 5000 NA en todas las variables de Review.
+* Hay más de 3000 NA en todas las variables de Review.
 
 
 
-## 04 Análisis exploratorio de datos
-
-TODO: A partir de aquí trabajaremos en ficheros separados de este, y los enlazaremos aquí.
-
-Katya, a partir de aquí solo enlazaremos otros Rmd en los que trabajaremos por separado. De momento dejo aquí el código que generaste por si lo necesitas:
+## 06 Análisis exploratorio de datos
 
 
-
-Para dividir nuestros datos, veamos en primero cuántas observaciones hay en cada grupo (por distritos de la ciudad)
-```{r}
-data %>% 
-  group_by(neighbourhood_group_cleansed) %>% 
-  count()
-
-```
-<br/>
-
-### 04.01 Análisis Univariante
+### 06.01 Análisis Univariante
 
 #### Variable: price
 
@@ -177,13 +186,9 @@ data %>%
 
 ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red")
 
-ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red") + xlim(c(0,500))
+ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth=10, fill="#69b3a2", color="#e9ecef", alpha=0.9) + geom_density(alpha = .3, fill="orange") + xlim(c(0,500))
 
-<<<<<<< HEAD
-ggplot(data, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
-=======
-ggplot(data, aes(y=price)) + geom_boxplot(varwidth = TRUE, alpha=0.2, col="orange") + scale_y_continuous(trans='log10')
->>>>>>> 63ffafba21fdb3882de1092ee8d02a3e57c5c9ad
+ggplot(data, aes(y=price)) + geom_boxplot(varwidth = TRUE, alpha=0.2) + scale_y_continuous(trans='log10')
 
 quantile(data$price)
 ```
@@ -330,7 +335,7 @@ ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count")
 ```
 <br/>
 
-### 04.02 Análisis Multivariante
+### 06.02 Análisis Multivariante
 
 #### Variables: price vs room_type
 
@@ -437,23 +442,13 @@ ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() 
 ```
 <br/>
 
-<<<<<<< HEAD
-### 05. Análisis detallado multivariante del precio
+### 07. Análisis detallado multivariante del precio
 
 
-#### 05.1 Subdivisión en categorías
+#### 07.1 Subdivisión en categorías
 
 
-##### 05.1.1 Ajustar al número de camas:
-=======
-## 07. Análisis detallado multivariante del precio
-
-
-### 07.1 Subdivisión en categorías
-
-
-#### 07.1.1 Ajustar al número de camas:
->>>>>>> 63ffafba21fdb3882de1092ee8d02a3e57c5c9ad
+##### 07.1.1 Ajustar al número de camas:
 
 ```{r priceperperson}
 data$price_per_person = data$price/data$accommodates
@@ -465,7 +460,7 @@ ggplot(data, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_co
 ```
 <br/>
 
-##### Variables: neighbourhood_group_cleansed
+#### Variables: neighbourhood_group_cleansed
 
 ```{r priceperbedVSneigh}
 ggplot(data, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()

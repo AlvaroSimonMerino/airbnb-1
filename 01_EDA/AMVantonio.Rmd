@@ -14,6 +14,7 @@ knitr::opts_chunk$set(echo = TRUE)
 ## 1. Cargar Librerías
 
 ```{r}
+library(caret)
 library(dplyr)
 library(ggplot2)
 library(stringr)
@@ -22,8 +23,23 @@ library(batman)
 ```
 
 ```{r loadData}
-data <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 ```
+
+## 2. Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 3. Conversión de tipos
+
 
 ```{r typeConversion}
 data$host_since <- as.Date(data$host_since)
@@ -42,12 +58,12 @@ ggplot(data, aes(x=room_type, y=price)) + geom_boxplot() + scale_y_continuous(tr
 #### price vs neighbourhood_group_cleansed
 
 ```{r priceVSneigh}
-ggplot(data, aes(x=neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') # CHECK: relevant
+ggplot(data, aes(x=neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()# CHECK: relevant
 ```
 
 #### price vs host_since
-```{r priceVSsuperhost}
-ggplot(data, aes(x=host_since, y=price)) + geom_col() + scale_y_continuous(trans='log10') # CHECK: Irrelevant
+```{r priceVShost_since}
+ggplot(data, aes(x=host_since, y=price)) + geom_col() + scale_y_continuous(trans='log10') # CHECK: Irrelevant TODO: agregar por promedio
 ```
 
 
@@ -124,4 +140,17 @@ pricevsavailability_365 <- data %>%
   summarise(precio = mean(price))
 
 ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() # CHECK: can seasonality be borrowed from here and scraping date?
+```
+
+
+#### reviews_per_month vs price
+
+```{r priceVSreviews_per_month}
+ggplot(data, aes(x=reviews_per_month, y=price)) + geom_point()
+```
+
+#### review_scores_rating vs price
+
+```{r priceVSreview_scores_rating}
+ggplot(data, aes(x=review_scores_rating, y=price)) + geom_point()
 ```

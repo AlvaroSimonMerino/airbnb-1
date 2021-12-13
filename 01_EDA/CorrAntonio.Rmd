@@ -1,0 +1,166 @@
+---
+title: "EDA Airbnb"
+author: "Antonio Fernández Cáceres"
+date: "18/11/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Cargar Librerías
+
+```{r}
+library(caret)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggmap)
+library(RgoogleMaps)
+library(leaps)
+library(stringr)
+library(readr)
+library(ggfortify)
+library(batman)
+library(ggcorrplot)
+```
+
+```{r loadData}
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+```
+
+## 2. Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 3. Conversión de tipos
+
+```{r typeConversion}
+data$host_since <- as.Date(data$host_since)
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+data$price<-parse_number(data$price)
+```
+
+## 4. Sustitución de NA's
+```{r nas}
+
+
+
+```
+
+## 5. Eliminación de outliers
+
+
+```{r casoWanda}
+
+data[grep("wanda", tolower(data$description)) & data$room_type=="Shared room" & data$neighbourhood_group_cleansed=="San Blas - Canillejas",c("neighbourhood_group_cleansed","neighbourhood_cleansed")] <- "Wanda Metropolitano"
+
+
+```
+
+```{r delOutliers}
+
+data <- data %>% mutate(pricePP = price/accommodates)
+umbral <- 150
+plazas <- 10
+data <- data[data$pricePP<umbral & data$accommodates<=plazas,]
+
+```
+
+## 4. Correlación entre variables "a ojo"
+
+```{r correlation}
+
+# TODO si se va a usar host_since, debería ser un entero hasta la última fecha
+
+numericData <- data[,c("price", "pricePP","accommodates","bedrooms","beds","minimum_nights","availability_365","review_scores_rating","review_scores_location","review_scores_value","review_scores_accuracy","review_scores_cleanliness","review_scores_checkin","review_scores_communication")]
+
+numericData <- data[,c("price", "pricePP","accommodates","bedrooms","beds","minimum_nights","availability_365","review_scores_location","review_scores_communication")]
+
+ggcorrplot(cor(numericData), lab = TRUE) # Accommodates es la que mayor correlación muestra
+
+```
+
+
+## 5. Regresión lineal multivariante
+
+``` {r regression}
+lm_fit <- lm(price~accommodates, data=data) #No hay duda de que el número de plazas influye
+summary(lm_fit)
+
+
+lm_fit <- lm(price~accommodates+bedrooms, data=data)
+summary(lm_fit)
+
+model <- lm(price~accommodates*bedrooms, data = data) # Incluiría Bedrooms. TODO: profundizar en el porqué.
+
+summary(model)
+
+autoplot(model)
+
+lm_fit <- lm(log(price)~accommodates:bedrooms+beds+minimum_nights+host_since+host_is_superhost+availability_365+room_type+neighbourhood_group_cleansed+review_scores_rating+review_scores_location+review_scores_value+review_scores_accuracy+review_scores_cleanliness+review_scores_checkin+review_scores_communication, data=data)
+summary(lm_fit)
+
+autoplot(lm_fit)
+
+
+lm_fit <- lm(price~longitude+latitude+accommodates:bedrooms+beds+minimum_nights+host_since+host_is_superhost+availability_365+room_type+neighbourhood_group_cleansed+review_scores_rating+review_scores_location+review_scores_value+review_scores_accuracy+review_scores_cleanliness+review_scores_communication, data=data)
+summary(lm_fit) #Pasa algo muy interesante: al separar el Wanda del resto, la localización tiene más peso, y de repente el rating airbnb de location pierde todo su peso. El barrio no vale un duro, y sin embargo el distrito sí.
+
+model <- lm(price~latitude+accommodates:bedrooms+beds+host_since+availability_365+room_type+neighbourhood_group_cleansed+review_scores_rating+review_scores_value+review_scores_cleanliness+review_scores_communication, data=data) # Al hacer log del precio, el R² queda casi 0.6
+
+
+summary(model)
+
+autoplot(model)
+
+# Regresión a saco:
+model <- lm_fit <- lm(log(price)~latitude+accommodates*beds*bedrooms+host_since+availability_30+room_type+neighbourhood_cleansed+review_scores_rating+review_scores_location+review_scores_value+review_scores_cleanliness+number_of_reviews+number_of_reviews+number_of_reviews_l30d+maximum_nights_avg_ntm+maximum_nights+minimum_minimum_nights+maximum_maximum_nights+maximum_nights_avg_ntm+availability_30+instant_bookable+property_type+host_acceptance_rate+bathrooms_text+host_response_rate+host_location+host_response_time+host_identity_verified, data=data)
+
+summary(model)
+
+autoplot(model)
+
+
+dataNum <- data[,unlist(lapply(data, is.numeric))]
+dataNum$pricePP <- NULL
+
+summary(lm_fit <- lm(log(price)~., data=dataNum)) # Al hacer log del precio, el R² queda casi 0.6
+
+
+regfit <- leaps::regsubsets(log(price)~.,data)
+
+```
+
+
+## 6. Mapa
+
+```{r mapa}
+
+ggplot(data, aes(x=longitude,y=latitude)) + geom_point(aes(colour=price)) + scale_color_gradient(low = "blue", high = "red")
+
+ggplot(data, aes(x=longitude,y=latitude)) + geom_point(aes(colour=pricePP)) + scale_color_gradient(low = "blue", high = "red")
+
+
+meanPriceByDistrict <- data %>% group_by(neighbourhood_group_cleansed) %>% summarize(mean_price = mean(price), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
+
+
+
+
+meanPriceByNB <- data %>% group_by(neighbourhood_cleansed) %>% summarize(mean_price = mean(price), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByNB, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
+```

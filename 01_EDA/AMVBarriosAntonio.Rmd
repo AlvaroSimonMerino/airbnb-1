@@ -1,0 +1,101 @@
+---
+title: "AMV Airbnb"
+author: "Antonio Fernández Cáceres"
+date: "18/11/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Cargar Librerías
+
+```{r}
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(batman)
+```
+
+```{r loadData}
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+```
+
+## 2. Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 3. Conversión de tipos
+
+```{r typeConversion}
+data$host_since <- as.Date(data$host_since)
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+data$price<-parse_number(data$price)
+```
+
+### 5. Análisis detallado multivariante del precio
+
+
+#### 5.1 Subdivisión en categorías
+
+##### 5.1.1 Ajustar al número de camas:
+
+```{r priceperperson}
+data$price_per_person = data$price/data$accommodates
+```
+
+```{r propertyCostPerPerson}
+ggplot(data, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
+```
+
+#### neighbourhood_group_cleansed
+
+```{r priceperbedVSneigh}
+ggplot(data, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
+```
+
+##### Canillejas case
+
+```{r canillejas}
+
+dataCan <- data[data$neighbourhood_group_cleansed=="San Blas - Canillejas",]
+count(dataCan)
+
+ggplot(dataCan, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
+
+count(dataCan %>% group_by(room_type))
+
+dataCan[dataCan$room_type=="Shared room","description"] # Check: Resuelto el misterio de los pisos caros. Están cerca del Wanda. Contémoslos:
+
+cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
+lejosWanda <- anti_join(dataCan, cercaWanda)
+
+
+ggplot(cercaWanda, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') # Resueltísimo: Habitaciones privadas y compartidas
+ggplot(lejosWanda, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') # Resueltísimo
+```
+
+##### neighbourhoods without Wanda
+```{r neighNoWanda}
+
+neighNoWanda <- anti_join(data, cercaWanda)
+
+ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
+
+```
+
+# TODO: comparar precios/cama con rankings
+# TODO: Qué hacer con outliers y NAs
