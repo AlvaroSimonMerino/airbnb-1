@@ -69,6 +69,7 @@ library(corrplot)
 library(psych)
 library(ipred)
 library(car)
+library(geojsonio)
 ```
 <br/>
 
@@ -322,11 +323,11 @@ Obtuvimos  `r nrow(data_train)` observaciones en el conjunto de datos *data_trai
 #### Estudio de la variable price
 
 ```{r precios, warning=FALSE}
-price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red")
+price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10, fill='cadetblue4') + geom_density(alpha = .1, fill="white")
 
-log_price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red") + xlim(c(0,500)) + ggtitle('Transformación logarítmica')
+log_price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10, color='white', fill='cadetblue4') + geom_density(alpha = .1, fill="white") + xlim(c(0,500)) + ggtitle('Transformación logarítmica')
 
-boxplot_price <- ggplot(data_train, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+boxplot_price <- ggplot(data_train, aes(y=price)) + geom_boxplot(fill='cadetblue4') + scale_y_continuous(trans='log10')
 
 quantile_price <- data.frame(quantile(data_train$price))
 
@@ -337,7 +338,7 @@ grid.arrange(price, log_price,boxplot_price,tbl, ncol=2, nrow =2, as.table=TRUE)
 La variable $price$, la cual queremos predecir, en general se concentra entre los 37 y los 105€, y en general el número de Airbnbs decrece con el precio.
 <br/>
 
-#### neighbourhood_group_cleansed
+#### Variable: neighbourhood_group_cleansed
 
 ```{r distritos, warning=FALSE}
 cuentaDistritos <- data_train %>%
@@ -345,11 +346,27 @@ cuentaDistritos <- data_train %>%
   summarise(count = n()) %>%
   arrange(-count)
 
-ggplot(data_train, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count')
+ggplot(data_train, aes(x=neighbourhood_group_cleansed, fill = neighbourhood_group_cleansed)) + geom_histogram(stat='count', color = '#262626') + coord_flip() + theme(legend.position = 'none') + ggtitle('Cantidad de Airbnbs por distrito') + ylab('Nº de Airbnbs') + xlab('Distritos')
 ```
+El estudio de esta variable es clave para entender la densidad de airbnbs por distrito. Aquí vemos claramente que el reparto de airbnbs por Madrid está en general homogeneizado en todos los distritos, excepto en el centro, dónde tiene una cantidad sumamente desproporcionada.
+A continuación, imprimimos cada airbnb como un punto sobre un plano básico de distritos de madrid, usando un rango de color para la variable precio, para entender a nivel visual esta concentración, y ver si la localización afecta de algún modo a la variable objetivo. Aunque esto pertenece realmente al apartado de Análisis Multivariante, lo incluímos aquí por conveniencia y por una mejor relación visual.
+<br/>
 
-Atendiendo al distrito, el que más AirBnb tiene, por mucho, es el Centro.
+```{r mapa, fig.height=7, fig.width=6.5, warning=FALSE}
+spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
+spdf_fortified <- tidy(spdf)
+spdf_df <- as.data.frame(spdf)
+sorted_spdf_df <- spdf_df %>% arrange(name)
 
+#Añadimos datos de población al geojson file
+sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+
+# Gráfico de airbnbs localizadas por latitud y longitud
+adjusted_price <- subset(data_train, price >0 & price < 150)
+price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1)
+price_map
+```
+<br/>
 
 #### room_type
 
@@ -482,7 +499,7 @@ sum(data_train$availability_365==0)
 ```
 
 
-## 5. Outliers
+### 4.02 Análisis de outliers
 
 
 ```{r outliers, warning=FALSE}
@@ -542,7 +559,9 @@ insane$reviews_per_month
 ```{r summary, warning=FALSE}
 summary(data)
 ```
-Viendo el summary se puede comprobar que:
+
+
+### Viendo el summary se puede comprobar que:
 
 * $host\_since$ tiene 16 NAs.
 
@@ -556,3 +575,409 @@ Viendo el summary se puede comprobar que:
 
 * Hay más de 3000 NA en todas las variables de Review.
 
+
+### Mostramos el gráfico de la distribución del número de valores perdidos.
+
+```{r grafico, echo=FALSE,fig.width=5.5,fig.height=3.5}
+na_vis <- data.frame(t(colSums(is.na(data_train))))
+na_bar <- data.frame(Features = names(na_vis),totals=colSums(na_vis))
+
+na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features, label = totals))+
+  geom_bar(stat = "identity")+
+  ggtitle("NA Distribution")+
+  xlab("Features")+
+  ylab("Total NAs")+
+  coord_flip()+
+  geom_text(size = 3, position = position_stack(vjust = 0.5))+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5))
+```
+
+```{r}
+md.pattern(data_train)
+``` 
+
+
+Tenemos una pequeña cantidad de valores faltantes en *host_is_superhost* y *host_exp_days*, solo 19 observaciones. En este caso, los valores faltantes se pueden reemplazar directamente:
+   - NA = false para *host_is_superhost*;
+   - NA = 0 para *host_exp_days*
+ 
+```{r na min}
+# en primero vamos a guardardatos modificados en nuevo dataset data_train_del_na para tener accesso de datos previos
+
+data_train_del_na <- data_train
+data_train_del_na$host_is_superhost[which(is.na(data_train_del_na$host_is_superhost))] <- FALSE
+data_train_del_na$host_exp_days[which(is.na(data_train_del_na$host_exp_days))] <- 0
+```  
+
+Construyamos una matriz de correlación de valores NA para otros variables (*neighbourhood*, *bedrooms*, *review_scores_rating*,  *reviews_per_month*, *last_review_days*).
+
+```{r cor na}
+x <- as.data.frame(abs(is.na(data_train_del_na)))
+y <- x[, which(colSums(x) > 0)]
+
+print(cor(y))
+```  
+
+```{r datos faltantes train, echo=FALSE}
+
+colSums(is.na(data_train_del_na))
+aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE)
+``` 
+
+Vemos que para las mismas observaciones existen valores para las variables *review_scores_rating*,  *reviews_per_month*, *last_review_days*. Para estas variables faltan 26,6% de observaciones y para *bedrooms* - 7,5%.
+
+Para seleccionar un método para completar los valores faltantes, primero definimos variables altamente correlacionadas que pueden conducir a una multicolinealidad y, en consecuencia, la imposibilidad de utilizar unos métodos de cálculo.
+
+```{r datos high corr,  echo=FALSE}
+high.corr<-function(x){
+  df<-x[sapply(x,is.numeric)]
+  fit<-corr.test(df)
+  diag(fit$r)<-0
+  inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
+  return(rownames(inds))
+}
+
+
+high.corr(data_train_del_na)
+
+``` 
+
+Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`).
+
+#### Imputacion por regresion
+
+Intentamos imputar datos faltantes de variable *bedrooms* usando regresion lineal, como sabemos que hay correlacion alta entre esta variable y variable *accommodates*.
+
+```{r datos na line,  echo=FALSE}
+fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
+summary(fit)
+``` 
+
+Vemos que los coeficientes de regresión lineal son significativos, sin embargo, R es lo suficientemente pequeño y explica solo el 47,6% de variación.
+
+Veamos en qué se diferencian los valores predichos de los originales. 
+
+```{r datos na line result,  echo=FALSE}
+actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
+pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
+regr.eval(actuals, pred_lm)
+``` 
+El error porcentual absoluto medio (mape) fue 26,4%, que es un indicador insatisfactorio. Probamos otros methodos.
+
+#### Imputacion con paquete mice
+
+Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra vamos usar methodos *rf* y *cart* de paquete *mice*. Los métodos de imputación predeterminados de  *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se puede invertir y dará como resultado su error.
+
+Utilizando este paquete, podemos imputar datos faltantes para todas variables, quales tienen NA.
+
+Resultatos para *random forest*.
+
+```{r datos imp rf, echo=FALSE}
+
+miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)  
+miceOutput <- complete(miceMod)
+``` 
+
+Comprobamos, si hay algunos NA en conjunto de datos.
+
+```{r datos imp rf na, echo=FALSE}
+anyNA(miceOutput) # False
+``` 
+
+Pues en output no tenemos datos faltantes.
+Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales. Mostramos el gráfico *densityplot*.
+
+```{r datos imp rf graph, echo=FALSE}
+densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+``` 
+
+Resultatos para *cart* (classification and regression trees).
+
+```{r datos imp cart, echo=FALSE}
+miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)  
+miceOutput_cart <- complete(miceMod_cart)
+``` 
+
+Comprobamos, si hay algunos NA en conjunto de datos.
+
+```{r datos imp cart na, echo=FALSE}
+anyNA(miceOutput_cart) # False
+``` 
+
+Pues en output no tenemos datos faltantes.
+Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales. Mostramos el gráfico *densityplot*.
+
+```{r datos imp cart graph, echo=FALSE}
+densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+``` 
+
+Nos vemos que datos imputados son muy cercanos de lo datos observados, pero mejor resultado para variables lo da el methodo *cart*. Usamos este methodo para nuestras variables con NA.
+
+```{r datos imputacion, echo=FALSE}
+data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
+
+data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
+
+data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"]
+
+data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"]
+``` 
+
+Veamos, si hemos han imputado todos datos faltantes en nuestro conjunto de datos *data_train*.
+```{r datos cart na, echo=FALSE}
+colSums(is.na(data_train_del_na)) # False
+``` 
+
+En resultado ya tenemos *data_train* sin datos faltantes y podemos mas eficaz trabajar con el.
+
+### Deteccion de valores atipicos
+
+Comprobamos si hay algunos datos atipicos en nuestro conjunto de datos.
+
+```{r datos sum, echo=FALSE}
+summary(data_train_del_na)
+``` 
+
+Vemos, que valores atipicos pueden tener variables *accommodates*, *bedrooms*, *price*, *minimum_nights*, *reviews_per_month*, *last_review_days*, *host_listings_count*, *price_per_person*. Revisamos estas variables mas detallado.
+
+#### Valores atipicos de variable accommodates
+
+Construyamos gráficos.
+
+```{r datos acc graph, echo=FALSE}
+
+plot(data_train_del_na$accommodates)
+
+ggplot(data = data_train_del_na) + 
+   aes(x = accommodates) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+
+
+ggplot(data = data_train_del_na) + 
+   aes(x = accommodates) + 
+   geom_dotplot(dotsize = 0.1,color = "green") +
+   theme_minimal()
+``` 
+
+
+#### Valores atipicos de variable bedrooms
+
+Construyamos gráficos.
+
+```{r datos b graph, echo=FALSE}
+plot(data_train_del_na$bedrooms)
+
+ggplot(data = data_train_del_na) + 
+   aes(x = bedrooms) + 
+   geom_boxplot(outlier.colour = "Red", fill = "green") + 
+   theme_bw()
+
+
+ggplot(data = data_train_del_na) + 
+   aes(x = bedrooms) + 
+   geom_dotplot(dotsize = 0.1,color = "blue") +
+   theme_minimal()
+``` 
+
+
+#### Valores atipicos de variable minimum_nights
+
+Construyamos gráficos.
+
+```{r datos m_n graph, echo=FALSE}
+plot(data_train_del_na$minimum_nights)
+
+ggplot(data = data_train_del_na) + 
+   aes(x = minimum_nights) + 
+   geom_boxplot(outlier.colour = "Red", fill = "yellow") + 
+   theme_bw()
+
+ggplot(data = data_train_del_na) + 
+   aes(x = minimum_nights) + 
+   geom_dotplot(dotsize = 0.1,color = "violet") +
+   theme_minimal()
+``` 
+
+Variable de mínimos noches muestra la presencia de valores atípicos, por lo que requiere modificaciones. Como es inusual que las noches mínimas estén por encima de 100 en cualquier airbnb, es claramente un valor atípico y debe eliminarse de nuestros datos.
+
+
+```{r outliers nights, echo=FALSE}
+# en primero vamos a guardardatos modificados en nuevo dataset data_train_clean para tener accesso de datos previos
+
+data_train_clean <- data_train_del_na
+
+uc1 = quantile(data_train_clean$minimum_nights, probs = 0.95, na.rm = TRUE)
+  lc1 = quantile(data_train_clean$minimum_nights, probs = 0.05, na.rm = TRUE)
+  data_train <- subset(data_train_clean, minimum_nights >= lc1 & minimum_nights <= uc1)
+
+summary(data_train_clean$minimum_nights)
+```
+
+```{r datos m_n graph outliers delete, echo=FALSE}
+ggplot(data = data_train_clean) + 
+   aes(x = minimum_nights) + 
+   geom_boxplot(outlier.colour = "Red", fill = "yellow") + 
+   theme_bw()
+``` 
+
+#### Valores atipicos de variable price y price_per_person
+
+Construyamos gráficos.
+```{r datos pr p graph, echo=FALSE}
+plot(data_train_clean$price)
+
+ggplot(data = data_train_clean) + 
+   aes(x = price) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+
+
+ggplot(data = data_train_clean) + 
+   aes(x = price) + 
+   geom_dotplot(dotsize = 0.1,color = "red") +
+   theme_minimal()
+``` 
+
+
+```{r datos pr p graph, echo=FALSE}
+plot(data_train_clean$price_per_person)
+
+ggplot(data = data_train_clean) + 
+   aes(x = price_per_person) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = price_per_person) + 
+   geom_dotplot(dotsize = 0.1,color = "red") +
+   theme_minimal()
+``` 
+
+Variable de precios por persona muestra la presencia de valores atípicos, por lo que requiere modificaciones. Como es inusual que la una noche para una persona vale 9000 euros.
+
+```{r outliers price, echo=FALSE}
+
+uc1 = quantile(data_train_clean$price_per_person, probs = 0.95, na.rm = TRUE)
+  lc1 = quantile(data_train_clean$price_per_person, probs = 0.05, na.rm = TRUE)
+  data_train <- subset(data_train_clean, price_per_person >= lc1 & price_per_person <= uc1)
+
+summary(data_train_clean$price_per_person)
+```
+
+```{r outliers pr, echo=FALSE}
+summary(data_train_clean$price)
+```
+
+```{r datos pr graph, echo=FALSE}
+
+ggplot(data = data_train_clean) + 
+   aes(x = price) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = price_per_person) + 
+   geom_boxplot(outlier.colour = "Red", fill = "blue") + 
+   theme_bw()
+``` 
+
+#### Valores atipicos de variable minimum_nights
+
+Construyamos gráficos.
+
+```{r datos m_n graph, echo=FALSE}
+plot(data_train$minimum_nights)
+
+ggplot(data = data_train) + 
+   aes(x = minimum_nights) + 
+   geom_boxplot(outlier.colour = "Red", fill = "yellow") + 
+   theme_bw()
+
+ggplot(data = data_train) + 
+   aes(x = minimum_nights) + 
+   geom_dotplot(dotsize = 0.1,color = "violet") +
+   theme_minimal()
+``` 
+
+
+#### Valores atipicos de variable reviews_per_month
+
+Construyamos gráficos.
+
+```{r datos r_m gr, echo=FALSE}
+
+plot(data_train_clean$reviews_per_month)
+   aes(x = reviews_per_month) + 
+   geom_boxplot(outlier.colour = "Red", fill = "violet") + 
+   theme_bw()
+
+
+ggplot(data = data_train_clean) + 
+   aes(x = reviews_per_month) + 
+   geom_dotplot(dotsize = 0.1,color = "orange") +
+   theme_minimal()
+``` 
+
+#### Valores atipicos de variable last_review_days
+
+Construyamos gráficos.
+
+```{r datos l_r graph, echo=FALSE}
+
+plot(data_train_clean$last_review_days)
+
+ggplot(data = data_train_clean) + 
+   aes(x = last_review_days) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+
+
+ggplot(data = data_train_clean) + 
+   aes(x = last_review_days) + 
+   geom_dotplot(dotsize = 0.1,color = "navy") +
+   theme_minimal()
+``` 
+
+
+#### Valores atipicos de variable host_listings_count
+
+Construyamos gráficos.
+
+```{r datos coun graph, echo=FALSE}
+plot(data_train_clean$host_listings_count)
+
+ggplot(data = data_train_clean) + 
+   aes(x = host_listings_count) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+
+ggplot(data = data_train_clean) + 
+   aes(x = host_listings_count) + 
+   geom_dotplot(dotsize = 0.1,color = "navy") +
+   theme_minimal()
+``` 
+
+```{r outliers count, echo=FALSE}
+
+uc1 = quantile(data_train_clean$host_listings_count, probs = 0.95, na.rm = TRUE)
+  lc1 = quantile(data_train_clean$host_listings_count, probs = 0.05, na.rm = TRUE)
+  data_train <- subset(data_train_clean, host_listings_count >= lc1 & host_listings_count <= uc1)
+
+summary(data_train_clean$host_listings_count)
+```
+
+```{r datos c out graph, echo=FALSE}
+ggplot(data = data_train_clean) + 
+   aes(x = host_listings_count) + 
+   geom_boxplot(outlier.colour = "Red", fill = "orange") + 
+   theme_bw()
+```  
+
+
+```{r outliers sresult, echo=FALSE}
+summary(data_train_clean)
+```
+
+En resumen eleminamos valores atipicos para variables *minimum_nights*, *price_per_person*, *host_listings_count*.
