@@ -1,0 +1,105 @@
+---
+title: "EDA Airbnb"
+author: "Antonio Fernández Cáceres"
+date: "18/11/2021"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 1. Cargar Librerías
+
+```{r}
+library(caret)
+library(tidyr)
+library(dplyr)
+library(ggplot2)
+library(ggmap)
+library(RgoogleMaps)
+library(leaps)
+library(stringr)
+library(readr)
+library(ggfortify)
+library(batman)
+library(ggcorrplot)
+```
+
+```{r loadData}
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
+```
+
+## 2. Separación Train-Test
+
+```{r split}
+
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
+
+```
+
+## 3. Conversión de tipos
+
+```{r typeConversion}
+data$host_since <- as.Date(data$host_since)
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+data$price<-parse_number(data$price)
+```
+
+## 4. Sustitución de NA's
+```{r nas}
+
+
+
+```
+
+## 6. Exploración de amenities
+
+
+```{r ExtractAmenities}
+
+head(data$amenities)
+str(data$amenities)
+
+amenities <- c()
+
+common <- unique(c('wifi', 'dryer', 'essentials', 'kitchen', 'heating', 'long term', 'hangers', 'washer', 'iron', 'tv', 'shampoo', 'hot water', 'air conditioning', 'dedicated workspace', 'dishes and silverware', 'parking', 'refrigerator', 'cooking basics', 'elevator', 'microwave', 'coffee', 'bed linens', 'alarm', 'stove', 'oven', 'fire extinguisher', 'extra pillows and blankets', 'first aid kit', 'dishwasher', 'host greets you', 'lock', 'cable', 'shower gel', 'luggage dropoff allowed', 'patio', 'darkening shades', 'room', 'private entrance', 'crib', 'breakfast', 'freezer', 'clothing storage', 'soap', 'cleaning products', 'dining table', 'drying rack for clothing', 'ethernet', 'bathtub', 'toaster', 'security camera', 'wine glasses', 'hot water kettle', 'single level home', 'backyard', 'pack ', 'travel crib', 'laundromat nearby', 'high chair', ' closet', 'children', 'pool', 'portable fans', 'nespresso', 'cleaning before checkout', 'building staff', 'babysitter', 'conditioner', 'books and toys', 'gym', 'bidet', 'baking sheet', 'mini fridge', 'window guards', 'free washer', 'dinnerware', 'indoor fireplace', 'keypad', 'baby bath', 'hot tub', 'ceiling fan', 'pour', 'outdoor furniture', 'ps', 'sound system', ' table', 'outlet covers', 'safe', 'beachfront', 'wardrobe', 'outdoor dining area', 'bathroom essentials', 'bedroom comforts', 'changing table', 'office', 'outdoor shower', 'board games', 'induction', 'bbq grill', 'heater', 'ski', 'desk', 'netflix', 'hdtv', 'baby safety gates', ' hdtv', 'table corner guards', 'game console', 'barbecue utensils', 'rice maker', 'ev charger', 'amazon prime', 'dresser and closet', 'bread maker', 'window ac unit', 'beach essentials', 'dresser', 'closet', 'fireplace guards', 'mosquito net', 'paid washer', 'self check', 'chromecast', 'piano', 'lake access', 'bikes', 'record player', 'baby monitor', 'free washer', 'pets allowed', 'sauna', 'trash compactor', 'books and toys for ages 0', 'monitor', 'hbo max', 'jab', 'books and toys for ages 2', 'apple tv', 'garage', 'smoking allowed', 'bed sheets and pillows', 'laundry', 'fire pit', 'gel', 'room service', 'toiletries', 'waterfront', 'concierge', 'minibar', 'onsite bar', 'paid washer', 'airport shuttle', 'garden', 'horno', 'limited housekeeping ', 'nintendo', 'onsite restaurant', 'ping pong table', 'roku', 'suitable for events', 'books and toys for ages 10+ years old', 'books and toys for ages 5', 'vitrocer', 'linens', 'xbox one', 'air fryer', 'alexa', 'all inclusive', 'bottled water', 'cd player', 'fitness center', 'house bikes', 'housekeeping','mini cadena', 'shared indoor olympic', 'shared outdoor olympic', 'slippers', 'spa'))
+
+data2 <- data
+
+for (row in 1:nrow(data2)) {
+  my_string<-tolower(str_split(data2$amenity[row], '[[:punct:]]')[[1]])
+  for (com in common){
+    for (s in my_string){
+      if(str_detect(s,com)){
+         my_string[my_string==s]<-com
+      }
+    }
+  }
+  
+  data2$amenity[row] <- my_string[(my_string!= "") & (my_string!= " ")]
+  amenities<-c(amenities,trimmedAmenity)
+}
+
+am <- data.frame(amenities)
+amenities <- as.data.frame(am %>% group_by(amenities) %>% summarize(n = n()) %>% arrange(desc(n)))
+
+amenities <- amenities[amenities$amenities %in% common,]
+
+colnames(amenities) <- c("name", "count")
+
+#write.csv(amenities,'amenities.csv')
+
+```
+
+```{r EDAamenities}
+
+
+
+```
