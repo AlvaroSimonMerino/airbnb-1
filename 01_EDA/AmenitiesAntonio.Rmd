@@ -142,7 +142,7 @@ for (row in 1:nrow(data2)){
       points = points + amenities$ratio[element]
     }
   }
-  data2$am_score[row] <- data2$am_score[row] + points
+  data2$am_score[row] <- points
 }
   
 
@@ -152,5 +152,16 @@ for (row in 1:nrow(data2)){
 ```{r regressionTest}
 
 
+
+data3 <- data2 %>% mutate(pricePP = price/accommodates)
+umbral <- 150
+plazas <- 10
+data3 <- data3[data3$pricePP<umbral & data3$accommodates<=plazas,]
+
+data[grep("wanda", tolower(data3$description)) & data3$room_type=="Shared room" & data3$neighbourhood_group_cleansed=="San Blas - Canillejas",c("neighbourhood_group_cleansed","neighbourhood_cleansed")] <- "Wanda Metropolitano"
+
+summary(lm(log(price) ~ log(accommodates)+log(bedrooms)+neighbourhood_cleansed + am_score, data = data3))
+
+summary(lm(am_score ~ log(price), data = data3))
 
 ```
