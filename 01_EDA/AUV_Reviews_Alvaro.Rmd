@@ -47,6 +47,11 @@ library(heatmaply)
 library(RColorBrewer)
 library(geojsonio)
 library(broom)
+library(leaflet)
+library(sf)
+library(ggmap)
+library(cartogram)
+library(tmap)
 ```
 <br/>
 
@@ -54,7 +59,7 @@ library(broom)
 Cargamos los datos (no copiar al archivo principal)
 
 ```{r loadData, warning=FALSE}
-data_train <- read.csv(file = '../01_EDA/data_train_clean.csv', header = TRUE)
+RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 ```
 <br/>
 
@@ -62,6 +67,10 @@ Separación Train-Test (no copiar al archivo principal)
 
 ```{r setseed, warning=FALSE}
 set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data_train <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
+data_test <- slice(RawData, -inTraining)
 ```
 <br/>
 
@@ -144,12 +153,12 @@ rpmonth <- na.omit(scores$reviews_per_month)
 summary(rpmonth)
 
 # Creación del layout para diagramas
-layout(mat = matrix(c(1,2),2,1, byrow=TRUE),  height = c(1,6))
+layout(matrix(c(1,2),2,1, byrow=TRUE), height = c(1,8))
  
 # Boxplot e histograma combinados
-par(mar=c(0, 3.1, 1.1, 2.1))
+par(mar=c(0, 5.1, 1.1, 2.1))
 boxplot(rpmonth , horizontal=TRUE , ylim=c(0,20), xaxt="n" , col=rgb(0.2,0.8,0.5,0.5) , frame=F)
-par(mar=c(4, 3.1, 1.1, 2.1))
+par(mar=c(4.5, 5.1, 1.1, 2.1))
 hist(rpmonth , breaks=40 , col='#CD5555' , border=F , main="", ylab="nº reviews", xlab="Media de reviews en 30", xlim=c(0,8))
 
 ```
@@ -162,11 +171,11 @@ Como podemos apreciar en este gráfico, la mayoria de los airbnb en la base de d
 Vamos ahora a estudiar si el ser superhost en airbnb, está relacionado con las distintas variables review. Para ello, primero transformamos la variable host_is_superhost, para imputar valores faltantes y convertir todos los datos a un mismo tipo, true y false, y NA para datos sin contenido.
 
 ```{r transf_superhost, warning=FALSE}
-data$host_is_superhost <- as.character(data$host_is_superhost)
-data$host_is_superhost[which(data$host_is_superhost == "")] <- NA
-data$host_is_superhost[which(data$host_is_superhost == "t")] <- "true"
-data$host_is_superhost[which(data$host_is_superhost == "f")] <- "false"
-data$host_is_superhost <- to_logical(data$host_is_superhost)
+data_train$host_is_superhost <- as.character(data_train$host_is_superhost)
+data_train$host_is_superhost[which(data_train$host_is_superhost == "")] <- NA
+data_train$host_is_superhost[which(data_train$host_is_superhost == "t")] <- "true"
+data_train$host_is_superhost[which(data_train$host_is_superhost == "f")] <- "false"
+data_train$host_is_superhost <- to_logical(data_train$host_is_superhost)
 ```
 <br/>
 
@@ -197,7 +206,7 @@ Una de las principales conclusiones de esta comparativa es que los usuarios que 
 
 
 ```{r rating_sh, warning=FALSE}
-rs_rating_sh <- ggplot(data, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + 
+rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + 
   geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 0.4) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
 grid.arrange(rs_rating, rs_rating_sh, ncol=2, nrow =1)
 ```
@@ -205,54 +214,76 @@ grid.arrange(rs_rating, rs_rating_sh, ncol=2, nrow =1)
 
 #### Analisis multivariante : correlaciones
 
+```{r cleaned data, warning=FALSE}
+data_train <- read.csv(file = '../01_EDA/data_train_clean.csv', header = TRUE)
+set.seed(12345)
+```
+<br/>
+
 ```{r multianalisis, warning=FALSE}
-high.corr<-function(x){
-  df<-x[sapply(x,is.numeric)]
-  fit<-corr.test(df)
-  diag(fit$r)<-0
-  inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
-  return(rownames(inds))
-}
+view_cols <- c('price', 'neighbourhood_group_cleansed', 'review_scores_rating')
 
-high.corr(data_train)
-
-corr <- data_train %>% select(price, accommodates, review_scores_rating, neighbourhood_group_cleansed, property_type, room_type, host_is_superhost)
+#numeric
+data_train %>% select(view_cols) %>%
+  ggpairs(columns=1:3, cardinality_threshold=25)
 
 ```
 <br/>
 
-```{r heatmap, warning=FALSE}
-heatmap <- data_train %>%
-  select(review_scores_rating, price, neighbourhood_group_cleansed) %>% na.omit(data_train)
+```{r basemap, warning=FALSE}
+price_dist_rating <- data_train %>% na.omit(data_train) %>%
+  select(review_scores_rating, price, neighbourhood_group_cleansed)
 
-csv <- heatmap %>% 
+price_dist_rating <- price_dist_rating %>% 
   group_by(neighbourhood_group_cleansed) %>% 
   summarise (mean_rating = mean(review_scores_rating), mean_price = mean(price))
 
-head(csv)
+head(price_dist_rating, 10)
 
-#write.table(csv, file = "dataforheatmap.csv",
+#write.table(heatmap_df, file = "dataforheatmap.csv",
 #            sep = "\t", row.names = F)
 ```
 <br/>
 
 ```{r heatmap, warning=FALSE}
+price_dist_rating$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 # Matrix format
-mat <- csv
+mat <- pdr_mat
 matriz <- as.matrix(mat)
-
+heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main="Heatmap", cexCol=0.6)
 # Heatmap
 #d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
 
-heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
+#heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
 ```
 <br/>
 
-```{r mapa, warning=FALSE}
+```{r mapa, fig.height=7, fig.width=6.5, warning=FALSE}
 spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
 spdf_fortified <- tidy(spdf)
-# Gráfico de airbnbs localizadas por latitud y longitud
-ggplot(data_train, aes(x=longitude, y=latitude, color=price)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="white", color="black", alpha = 0.5) + theme_void() + coord_map() + geom_point() + ggtitle('Viviendas localizadas según su coordenada') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), color="black", alpha = 0)
+spdf_df <- as.data.frame(spdf)
+sorted_spdf_df <- spdf_df %>% arrange(name)
 
+#Añadimos datos de población al geojson file
+sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+sorted_spdf_df
+# Gráfico de airbnbs localizadas por latitud y longitud
+adjusted_price <- subset(data_train, price >0 & price < 150)
+price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1)
+price_map
+
+```
+<br/>
+
+```{r mapa interactivo, warning=FALSE}
+#map <- get_stamenmap( bbox = c(left = 110, bottom = -40, right = 160, top = -10), zoom = 4, maptype = "toner-lite")
+
+m <- leaflet() %>% 
+   addTiles() %>% 
+   setView( lng = -3.70, lat = 40.4, zoom = 11 ) %>% 
+   addProviderTiles("OpenStreetMap.HOT")
+
+spdf <- st_read("../02_Resources/madrid-districts.geojson",  what = "sp")
 ```
 
