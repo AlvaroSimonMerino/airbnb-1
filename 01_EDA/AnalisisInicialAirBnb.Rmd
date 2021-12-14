@@ -3,131 +3,64 @@ title: "FAD_DataAnalysis_practica"
 author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "13/11/2021"
 output:
-  html_document:
-    theme: united
-    code_folding: "hide"
-    toc: yes
-    toc_float: yes
-  pdf_document: 
-    theme: united
-    code_folding: "hide"
-    toc: yes
-    toc_float: yes
----
-
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 00 Introducción a la práctica y librerías
+## 1. Cargar Librerías
 
-Para la práctica hemos seleccionado una base de datos obtenida de insideairbnb.com con los alquileres de AirBnb de Madrid. Esta base de datos es de dominio público y consta de 22 variables con 18909 observaciones.
-
-La base de datos puede descargarse en el siguiente enlace: http://insideairbnb.com/get-the-data.html
-
-
-Las librerias usadas para esta práctica son las siguientes:
-
- - caret
- - dplyr
- - ggplot2
- - stringr
- - readr
- - batman
- - knitr
- - tidyr
-
-```{r include=FALSE}
-library(caret)
+```{r}
 library(dplyr)
 library(ggplot2)
 library(stringr)
 library(readr)
 library(batman)
-library(knitr)
-library(tidyr)
 ```
-<br/>
 
-## 01 Definición de objetivos
-Dado que la base de datos elegida está relacionada con el alquiler de viviendas, consideramos la variable "price", la cual representa el valor del precio del alquiler, como la variable objetivo de la práctica.
-<br/>
 
-### Objetivos generales
-- Analizar las variables de la base de datos seleccionada para su comprensión y posterior estudio.
-- Aplicar el módelo de regresión lineal múltiple para inferir la variable "price" seleccionada, que corresponde al precio de la vivienda.
-<br/>
-
-### Objetivos específicos
-1. Separar los datos en 2 grupos de datos: trainning, control y testing.
-    - El grupo training + control contiene el 80% de los datos, con el cual entrenaremos el modelo. 
-    - El grupo test contiene el 20% de los datos y se dejará como conjunto aislado hasta el final de la práctica como simulación de datos reales.
-
-2. Realizar un análisis exploratorio inicial de cada una de las variables de la base de datos.
-    - Se llevará a cabo separando las variables categóricas de las cualitativas para su posterior estudio.
-    
-3. Imputar las variables faltantes de la base de datos previo estudio
-4. Aplicar las transformaciones necesarias a cada una de las variables.
-5. Entrenar el modelo matemático de regresión múltiple para la predicción de la varaible precio.
-<br/>
-
-## 02 Ingesta de datos
+## 2. Ingesta y limpieza de datos
 
 Según el diccionario de datos proporcionado con los mismos, se adjunta el significado de cada variable de interés a extraer:
 
-- $id$: identificador único de cada espacio alquilable.
-- $host\_id$: identificador único de cada arrendador.
-- $host\_since$: fecha en que el arrendador se dio de alta en la plataforma.
-- $host\_is\_superhost$: indicador lógico de si el arrendador tiene excelentes puntuaciones.
-- $neighbourhood\_group\_cleansed$: distrito en que se encuentra el espacio alquilable.
-- $property\_type$: tipo de propiedad.
-- $room\_type$: tipo de habitación.
-- $accommodates$: capacidad máxima del espacio.
-- $bedrooms$: número de cuartos de baño.
-- $beds$: número de camas de la habitación.
-- $price$: precio por noche en moneda local.
-- $minimum\_nights$: mínimo de noches por estancia.
-- $minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
-- $maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
-- $availability\_365$: disponibilidad del espacio durante los próximos 365 días.
+$id$: identificador único de cada espacio alquilable.
+$host\_id$: identificador único de cada arrendador.
+$host\_since$: fecha en que el arrendador se dio de alta en la plataforma.
+$host\_is\_superhost$: indicador lógico de si el arrendador tiene excelentes puntuaciones.
+$neighbourhood\_group\_cleansed$: distrito en que se encuentra el espacio alquilable.
+$property\_type$: tipo de propiedad.
+$room\_type$: tipo de habitación.
+$accommodates$: capacidad máxima del espacio.
+$bedrooms$: número de cuartos de baño.
+$beds$: número de camas de la habitación.
+$price$: precio por noche en moneda local.
+$minimum\_nights$: mínimo de noches por estancia.
+$minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
+$maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
+$availability\_365$: disponibilidad del espacio durante los próximos 365 días.
 
 Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas: (TODO: revisar esto en alguna otra parte)
-
-- $review\_scores\_rating$
-- $review\_scores\_accuracy$
-- $review\_scores\_cleanliness$
-- $review\_scores\_checkin$
-- $review\_scores\_communication$
-- $review\_scores\_location$
-- $review\_scores\_value$
-- $reviews\_per\_month$
+$review\_scores\_rating$
+$review\_scores\_accuracy$
+$review\_scores\_cleanliness$
+$review\_scores\_checkin$
+$review\_scores\_communication$
+$review\_scores\_location$
+$review\_scores\_value$
+$reviews\_per\_month$
 
 Procedemos a extraer los datos de nuestras variables de interés del fichero $.csv$:
 
 ```{r loadData}
 RawData <- read.csv(file = '../00_DatosOriginales/listings.csv', header = TRUE)
 #summary(RawData)
-#data <- RawData #%>%
-  #select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
-#str(data)
+data <- RawData %>%
+  select(id, host_id, host_since, host_is_superhost, neighbourhood_group_cleansed, property_type, room_type, accommodates, bedrooms, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
+str(data)
 ```
-
-
-## 03 Separación Train-Test
-
-```{r split}
-
-set.seed(12345)
-inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
-                                  p = .7, list = FALSE, times = 1)
-data <- slice(RawData, inTraining) # Renombrado "data" por conveniencia
-data_test <- slice(RawData, -inTraining)
-
-```
-
-## 04 Conversión de tipos incorrectos
 
 En primer lugar, comprobamos que nuestro conjunto de datos tiene 22 variables, aunque no todas han sido clasificadas con el tipo que esperaríamos. $host\_since$ debería ser fecha, $host\_is\_superhost$ debería ser un booleano y $price$ debería ser numérico.
 
@@ -135,16 +68,9 @@ A continuación convertiremos los tipos que no son correctos:
 
 ```{r typeConversion}
 data$host_since <- as.Date(data$host_since)
-
-data %>% count(host_is_superhost) # Como la variable es string, comprobaremos cuántos valores hay de cada uno, convertiremos, y los comprobaremos tras la conversión
-data[data$host_is_superhost=="","host_is_superhost"] <- NA
 data$host_is_superhost <- to_logical(data$host_is_superhost)
-data %>% count(host_is_superhost)
 data$price<-parse_number(data$price)
 ```
-
-Una vez comprobado que no se han perdido datos tras la conversión, procedemos a revisar el tipo de cada variable:
-
 
 ```{r checkTypes}
 str(data)
@@ -153,16 +79,16 @@ str(data)
 Ahora todos los datos están en el formato correcto.
 
 
-## 05 Estudio de valores faltantes
+### 3. Estudio de valores faltantes
 
 ```{r summary}
 summary(data)
 ```
 Viendo el summary se puede comprobar que:
 
-* $host\_since$ tiene 16 NAs.
+* $host\_since$ tiene 26 NAs.
 
-* $bedrooms$ tiene 1022 NAs.
+* $bedrooms$ tiene 1434 NAs.
 
 * $price$ no tiene NAs, pero el máximo es $9999.0, lo cual no parece verosímil.
 
@@ -170,334 +96,23 @@ Viendo el summary se puede comprobar que:
 
 * Es factible que $availability\_365$ tenga valores a 0, pero altamente improbable. Debemos estudiarlo.
 
-* Hay más de 3000 NA en todas las variables de Review.
+* Hay más de 5000 NA en todas las variables de Review.
 
 
 
-## 06 Análisis exploratorio de datos
+### 4. Análisis exploratorio de datos
+
+TODO: A partir de aquí trabajaremos en ficheros separados de este, y los enlazaremos aquí.
+
+Katya, a partir de aquí solo enlazaremos otros Rmd en los que trabajaremos por separado. De momento dejo aquí el código que generaste por si lo necesitas:
 
 
-### 06.01 Análisis Univariante
 
-#### Variable: price
-
-```{r precios}
-
-
-ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red")
-
-ggplot(data, aes(x=price, y=..density..)) + geom_histogram(binwidth=10, fill="#69b3a2", color="#e9ecef", alpha=0.9) + geom_density(alpha = .3, fill="orange") + xlim(c(0,500))
-
-ggplot(data, aes(y=price)) + geom_boxplot(varwidth = TRUE, alpha=0.2) + scale_y_continuous(trans='log10')
-
-quantile(data$price)
-```
-
-
-La variable $price$, la cual queremos predecir, en general se concentra entre los 37 y los 105€, y en general el número de Airbnb decrece con el precio.
-<br/>
-
-#### Variable: neighbourhood_group_cleansed
-
-```{r distritos}
-cuentaDistritos <- data %>%
-  group_by(neighbourhood_group_cleansed) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-ggplot(data, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count') + coord_flip()
-```
-
-Atendiendo al distrito, el que más AirBnb tiene, por mucho, es el Centro.
-<br/>
-
-#### Variable:room_type
-
-```{r tipos}
-ggplot(data, aes(x=room_type)) + geom_histogram(stat='count')
-
-cuentaTipos <- data %>%
-  group_by(room_type) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-cuentaTipos
-```
-<br/>
-
-#### Variable:accommodates
-
-```{r accommodates}
-ggplot(data, aes(x=accommodates)) + geom_histogram(stat='count')
-
-cuentaAccommodates <- data %>%
-  group_by(accommodates) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-cuentaAccommodates
+Para dividir nuestros datos, veamos en primero cuántas observaciones hay en cada grupo (por distritos de la ciudad)
+```{r}
+data %>% 
+  group_by(neighbourhood_group_cleansed) %>% 
+  count()
 
 ```
 
-Aproximadamente un tercio de las propiedades son para 2 personas, y la gran mayoría son para 6 o menos.
-<br/>
-
-#### Variable:bedrooms
-
-```{r bedrooms}
-ggplot(data, aes(x=bedrooms)) + geom_histogram(stat='count')
-
-cuentaBedrooms <- data %>%
-  group_by(bedrooms) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-cuentaBedrooms
-
-```
-
-Dos tercios de las propiedades tienen 1 dormitorio, y el resto menos. Hay 1434 datos faltantes.
-<br/>
-
-#### Variable:beds
-
-```{r beds}
-ggplot(data, aes(x=beds)) + geom_histogram(stat='count')
-
-cuentaBeds <- data %>%
-  group_by(beds) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-cuentaBeds
-
-```
-
-La mayoría de las propiedades tienen entre 1 y 4 camas.
-<br/>
-
-#### Variable:minimum_nights
-
-```{r minNights}
-ggplot(data, aes(x=minimum_nights)) + geom_histogram(binwidth = 1)  + scale_y_continuous(trans='log10')
-
-cuentaMinNights <- data %>%
-  group_by(minimum_nights) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-cuentaMinNights
-
-```
-<br/>
-
-#### Variable:minimum_nights_avg_ntm
-
-```{r minNightsAvg}
-ggplot(data, aes(x=minimum_nights_avg_ntm)) + geom_histogram(binwidth = 1)  + scale_y_continuous(trans='log10')
-
-cuentaMinNightsAvg <- data %>%
-  group_by(minimum_nights_avg_ntm) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
-cuentaMinNightsAvg
-
-```
-<br/>
-
-#### Variable:maximum_nights_avg_ntm
-
-```{r maxNightsAvg}
-ggplot(data, aes(x=maximum_nights_avg_ntm)) + geom_histogram(binwidth = 5)  + scale_y_continuous(trans='log10') + xlim(c(0,2000))
-```
-<br/>
-
-#### Variable:host_since
-
-```{r host_since}
-ggplot(data, aes(x=host_since)) + geom_histogram(binwidth = 30)
-
-```
-<br/>
-
-#### Variable:host_is_superhost
-
-```{r host_is_superhost}
-ggplot(data, aes(x=host_is_superhost)) + geom_histogram(stat="count")
-```
-<br/>
-
-#### Variable:availability_365
-
-```{r availability_365}
-ggplot(data, aes(x=availability_365)) + geom_histogram(stat="count")
-```
-<br/>
-
-### 06.02 Análisis Multivariante
-
-#### Variables: price vs room_type
-
-```{r priceVSroomtype}
-ggplot(data, aes(x=room_type, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
-```
-<br/>
-
-#### Variables: price vs neighbourhood_group_cleansed
-
-```{r priceVSneigh}
-ggplot(data, aes(x=neighbourhood_group_cleansed, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()  # CHECK: relevant
-```
-<br/>
-
-#### Variables: price vs host_since
-
-```{r priceVShost}
-ggplot(data, aes(x=host_since, y=price)) + geom_col() + scale_y_continuous(trans='log10') # CHECK: Irrelevant
-```
-<br/>
-
-#### Variables: price vs host_is_superhost
-
-```{r priceVSsuperhost}
-ggplot(data, aes(x=host_is_superhost, y=price)) + geom_boxplot() + scale_y_continuous(trans='log10') #CHECK: bit of an edge
-```
-<br/>
-
-#### Variables: price vs accommodates
-
-```{r priceVSaccommodates}
-pricevsAcco <- data %>%
-  group_by(accommodates) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsAcco, aes(x=accommodates, y=precio)) + geom_col() # CHECK: Fairly obvious
-```
-<br/>
-
-#### Variables: price vs bedrooms
-
-```{r priceVSbedrooms}
-pricevsBR <- data %>%
-  group_by(bedrooms) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsBR, aes(x=bedrooms, y=precio)) + geom_col() # CHECK: accommodates are better
-```
-<br/>
-
-#### Variables: price vs beds
-
-```{r priceVSbeds}
-pricevsBeds <- data %>%
-  group_by(beds) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsBeds, aes(x=beds, y=precio)) + geom_col() # CHECK: Fairly obvious. Accommodates can be better.
-```
-<br/>
-
-#### Variables: price vs minimum_nights
-
-```{r priceVSminimum_nights}
-pricevsminimum_nights <- data %>%
-  group_by(minimum_nights) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsminimum_nights, aes(x=minimum_nights, y=precio)) + geom_col() # No value
-```
-<br/>
-
-#### Variables: price vs minimum_nights_avg_ntm
-
-```{r priceVSminimum_nights_avg_ntm}
-pricevsminimum_nights_avg_ntm <- data %>%
-  group_by(minimum_nights_avg_ntm) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsminimum_nights_avg_ntm, aes(x=minimum_nights_avg_ntm, y=precio)) + geom_col() + scale_y_continuous(trans='log10') #¿?
-```
-<br/>
-
-#### Variables: price vs maximum_nights_avg_ntm
-
-```{r priceVSmaximum_nights_avg_ntm}
-pricevsmaximum_nights_avg_ntm <- data %>%
-  group_by(maximum_nights_avg_ntm) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsmaximum_nights_avg_ntm, aes(x=maximum_nights_avg_ntm, y=precio)) + geom_col() # No value
-```
-<br/>
-
-#### Variables: price vs availability_365
-
-```{r priceVSavailability_365}
-pricevsavailability_365 <- data %>%
-  group_by(availability_365) %>%
-  summarise(precio = mean(price))
-
-ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col() # CHECK: can seasonality be borrowed from here and scraping date?
-```
-<br/>
-
-### 07. Análisis detallado multivariante del precio
-
-
-#### 07.1 Subdivisión en categorías
-
-
-##### 07.1.1 Ajustar al número de camas:
-
-```{r priceperperson}
-data$price_per_person = data$price/data$accommodates
-```
-<br/>
-
-```{r propertyCostPerPerson}
-ggplot(data, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
-```
-<br/>
-
-#### Variables: neighbourhood_group_cleansed
-
-```{r priceperbedVSneigh}
-ggplot(data, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()
-```
-<br/>
-
-##### Variables: Canillejas case
-
-```{r canillejas}
-
-dataCan <- data[data$neighbourhood_group_cleansed=="San Blas - Canillejas",]
-count(dataCan)
-
-ggplot(dataCan, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
-
-count(dataCan %>% group_by(room_type))
-
-dataCan[dataCan$room_type=="Shared room","description"] # Check: Resuelto el misterio de los pisos caros. Están cerca del Wanda. Contémoslos:
-
-cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
-lejosWanda <- anti_join(dataCan, cercaWanda)
-
-
-ggplot(cercaWanda, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') # Resueltísimo: Habitaciones privadas y compartidas
-ggplot(lejosWanda, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') # Resueltísimo
-```
-<br/>
-
-##### Variables: neighbourhoods without Wanda
-```{r neighNoWanda}
-
-neighNoWanda <- anti_join(data, cercaWanda)
-
-ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()
-
-```
-<br/>
-
-TO-DO: comparar precios/cama con rankings
-TO-DO: Qué hacer con outliers y NAs

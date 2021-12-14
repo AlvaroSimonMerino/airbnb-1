@@ -51,6 +51,7 @@ library(leaflet)
 library(sf)
 library(ggmap)
 library(cartogram)
+library(tmap)
 ```
 <br/>
 
@@ -229,15 +230,15 @@ data_train %>% select(view_cols) %>%
 ```
 <br/>
 
-```{r heatmap, warning=FALSE}
-heatmap <- data_train %>%
-  select(review_scores_rating, price, neighbourhood_group_cleansed) %>% na.omit(data_train)
+```{r basemap, warning=FALSE}
+price_dist_rating <- data_train %>% na.omit(data_train) %>%
+  select(review_scores_rating, price, neighbourhood_group_cleansed)
 
-heatmap_df <- heatmap %>% 
+price_dist_rating <- price_dist_rating %>% 
   group_by(neighbourhood_group_cleansed) %>% 
-  summarise (mean_rating = mean(review_scores_rating), mean_price = mean(price)) %>% slice(-c(7))
+  summarise (mean_rating = mean(review_scores_rating), mean_price = mean(price))
 
-heatmap_df
+head(price_dist_rating, 10)
 
 #write.table(heatmap_df, file = "dataforheatmap.csv",
 #            sep = "\t", row.names = F)
@@ -245,42 +246,33 @@ heatmap_df
 <br/>
 
 ```{r heatmap, warning=FALSE}
+price_dist_rating$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 # Matrix format
-mat <- csv
+mat <- pdr_mat
 matriz <- as.matrix(mat)
-
+heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main="Heatmap", cexCol=0.6)
 # Heatmap
 #d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
 
-heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
+#heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
 ```
 <br/>
 
-```{r mapa, warning=FALSE}
+```{r mapa, fig.height=7, fig.width=6.5, warning=FALSE}
 spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
 spdf_fortified <- tidy(spdf)
-#Añadimos datos de población al dataframe de price, distritos y reviews
-heatmap_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+spdf_df <- as.data.frame(spdf)
+sorted_spdf_df <- spdf_df %>% arrange(name)
 
+#Añadimos datos de población al geojson file
+sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+sorted_spdf_df
 # Gráfico de airbnbs localizadas por latitud y longitud
 adjusted_price <- subset(data_train, price >0 & price < 150)
-price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="white", color="black", alpha = 0.5) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), color="black", alpha = 0)
+price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1)
+price_map
 
-# Añado paleta de colores
-my_colors <- brewer.pal(9, "Reds") 
-my_colors <- colorRampPalette(my_colors)(21)
- 
-# Attribute the appropriate color to each country
-class_of_district <- cut(heatmap_df$Poblacion_2017, 21)
-my_colors <- my_colors[as.numeric(class_of_district)]
- 
-# Make the plot
-madrid_districts <- ggplot(heatmap_df, aes(x=longitude, y=latitude, color=price)) +
-  geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="white", color="black", alpha = 0.5) +
-  geom_point( data=data, aes(x=long, y=lat)) +
-  theme_void() + coord_map() 
-
-grid.arrange(madrid_districts, price_map, ncol=2, nrow =1)
 ```
 <br/>
 
@@ -291,6 +283,7 @@ m <- leaflet() %>%
    addTiles() %>% 
    setView( lng = -3.70, lat = 40.4, zoom = 11 ) %>% 
    addProviderTiles("OpenStreetMap.HOT")
-m
+
+spdf <- st_read("../02_Resources/madrid-districts.geojson",  what = "sp")
 ```
 

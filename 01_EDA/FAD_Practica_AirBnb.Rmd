@@ -1,0 +1,558 @@
+---
+title: "FAD_DataAnalysis_practica"
+author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
+date: "13/11/2021"
+output:
+  html_document:
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+  pdf_document: 
+    theme: united
+    code_folding: "hide"
+    toc: yes
+    toc_float: yes
+---
+
+---
+
+```{r setup, include=FALSE, warning=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## 00 Descripción de la base de datos y librerias
+
+Para la práctica hemos seleccionado el dataset *listings.csv* (Airbnb Madrid, 2021-09-10), una base de datos obtenida de insideairbnb.com con los alquileres de AirBnb de Madrid. Esta base de datos es de dominio público y consta de 22 variables con 18909 observaciones.
+
+La base de datos puede descargarse en el siguiente enlace: http://insideairbnb.com/get-the-data.html
+
+
+Las librerias usadas para esta práctica son las siguientes:
+
+-caret
+-dplyr
+-ggplot2
+-stringr
+-readr
+-batman
+-knitr
+-tidyr
+-PASWR2
+-scales
+-nortest
+-cowplot
+-mice
+-VIM
+-corrplot
+-psych
+-ipred
+-DMwR
+-car
+
+```{r include=FALSE, warning=FALSE}
+library(caret)
+library(dplyr)
+library(ggplot2)
+library(stringr)
+library(readr)
+library(batman)
+library(knitr)
+library(tidyr)
+library(PASWR2)
+library(scales)
+library(nortest)
+library(cowplot)
+library(mice)
+library(VIM)
+library(corrplot)
+library(psych)
+library(ipred)
+library(car)
+```
+<br/>
+
+## 01 Introducción a la práctica
+
+El turismo es una de las principales actividades economicas en España, antes del COVID-19 formaba una media de alrededor del 15,0% del PIB anual. Además, si tenemos en cuenta los tipos de actividades económicas adyacentes, la contribución del turismo será mucho mayor.
+
+El turismo también es el generador de empleo más importante en España, con 2,83 millones de trabajadores turísticos registrados en 2019. De este modo, supera al sector salud con 2,71 millones de trabajadores, pero va por detrás del comercio con 3,19 millones. Sin embargo, el turismo ocupa el primer lugar en cuanto a empleo indirecto, con 1,87 millones de trabajadores, lo que representa el 66% del total de puestos de trabajo creados en el sector. Este indicador está impulsado por la gran cantidad de subsectores relacionados con el turismo y empresas auxiliares.
+
+La actividad principal del turismo depende en gran medida de los servicios de alojamiento (hoteles, campings o casas) representados por los agregadores de reservas y alquileres más grandes, como Booking y Airbnb. En las condiciones actuales, muchas personas podrían quedarse sin trabajo, y una de las posibles opciones para ganar dinero en el contexto de la reducción de las restricciones en España es el alquiler de viviendas a turistas.
+
+El autoempleo de la población en el ámbito del alojamiento turístico se manifiesta más claramente en el portal de Airbnb. Nuestro principal objetivo es predecir el precio del alquiler para futuros o actuales propietarios en Madrid, independientemente del factor estacional. Porque para los propietarios, el factor tiempo afecta relativamente de la misma manera, los días de alta demanda con oferta limitada aumentan los precios de alquiler (vacaciones, temporada turística, etc.). Con base en el precio previsto, el propietario podrá determinar el precio de alquiler de su propiedad, averiguar los factores que más afectan el precio de alquiler.
+<br/>
+
+## 02 Definición de objetivos
+Dado que la base de datos elegida está relacionada con el alquiler de viviendas, consideramos la variable "price", la cual representa el valor del precio del alquiler, como la variable objetivo de la práctica.
+<br/>
+
+### Objetivos generales
+- Analizar las variables de la base de datos seleccionada para su comprensión y posterior estudio.
+- Aplicar el módelo de regresión lineal múltiple para inferir la variable "price" seleccionada, que corresponde al precio de la vivienda.
+<br/>
+
+### Objetivos específicos : Pasos
+1. Preparación de los datos.
+
+2. Separar los datos en 2 grupos de datos: training + control y testing.
+    - El grupo training + control contiene el 70% de los datos, con el cual entrenaremos el modelo. 
+    - El grupo test contiene el 30% de los datos y se dejará como conjunto aislado hasta el final de la práctica como simulación de datos reales.
+
+  Sobre el dataset de training:
+     - transformar las variables, imputar datos (si procede);
+     - proponer un modelo inicial (e.g. regresión lineal);
+     - evaluar inicialmente el modelo mediante los resultados básicos ofrecidos por summary(model).
+   
+3. Realizar un análisis exploratorio inicial de cada una de las variables del grupo de training.
+    - Se llevará a cabo separando las variables categóricas de las cualitativas para su posterior estudio.
+    
+4. Imputar las variables faltantes de la base de datos previo estudio
+5. Aplicar las transformaciones necesarias a cada una de las variables.
+6. Entrenar el modelo matemático de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable 'precio'.
+7. Usar el modelo propuesto para la predicción de la variable 'precio' con las variables del grupo testing.
+    - Transformación de variables, imputación datos (si procede), siguiendo las mismas operaciones que para el caso de training.
+    - Comparar con los datos de la columna real price en los datos de testing, para comprobar el porcentaje de aciertos/fallos.
+    - Ajustar el modelo de regresión lineal siguiendo criterios contrastados (con la teoría vista hasta el momento), para decidir las variables         que incluímos en el modelo predictivo.
+<br/>
+
+## 03 Ingesta,limpieza y separación de datos
+
+Según el diccionario de datos proporcionado con los mismos, se adjunta el significado de cada variable de interés a extraer:
+
+- $id$: identificador único de cada espacio alquilable.
+- $host\_id$: identificador único de cada arrendador.
+- $host\_since$: fecha en que el arrendador se dio de alta en la plataforma.
+- $host\_is\_superhost$: indicador lógico de si el arrendador tiene excelentes puntuaciones.
+- $neighbourhood\_group\_cleansed$: distrito en que se encuentra el espacio alquilable.
+- $property\_type$: tipo de propiedad.
+- $room\_type$: tipo de habitación.
+- $accommodates$: capacidad máxima del espacio.
+- $bedrooms$: número de cuartos de baño.
+- $beds$: número de camas de la habitación.
+- $price$: precio por noche en moneda local.
+- $minimum\_nights$: mínimo de noches por estancia.
+- $minimum\_nights\_avg\_ntm$: promedio de mínimo de noches durante los próximos 365 días.
+- $maximum\_nights\_avg\_ntm$ promedio de máximo de noches durante los próximos 365 días.
+- $availability\_365$: disponibilidad del espacio durante los próximos 365 días.
+- $reviews\_per\_month$: media de número de reviews por airbnb durante un mes.
+
+Las siguientes variables no aparecen en el diccionario, por lo que entramos a valorarlas: (TODO: revisar esto en alguna otra parte)
+
+- $review\_scores\_rating$
+- $review\_scores\_accuracy$
+- $review\_scores\_cleanliness$
+- $review\_scores\_checkin$
+- $review\_scores\_communication$
+- $review\_scores\_location$
+- $review\_scores\_value$
+<br/>
+
+### Preparacion de los datos
+
+#### Conjunto de datos
+
+Trabajaremos con el conjunto de datos **RawData**, que contiene informacion sobre listados de Airbnb en Madrid (España) (2021-09-10).
+```{r, echo=FALSE, warning=FALSE}
+RawData <- read.csv("../00_DatosOriginales/listings.csv")
+```
+Este dataset esta formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables. 
+<br/>
+
+Basandonos en estudios previos similares ya realizados y un conocimiento preliminar de los datos, seleccionaremos las variables de interés del conjunto de datos, para su limpieza y estudio:
+
+   - id 
+   - host_id
+   - host_since
+   - host_is_superhost
+   - description
+   - neighbourhood_group_cleansed
+   - latitude
+   - longitude
+   - property_type 
+   - room_type 
+   - accommodates
+   - bedrooms 
+   - price
+   - minimum_nights
+   - availability_365
+   - last_review
+   - review_scores_rating
+   - reviews_per_month
+
+Guardamos las variables seleccionadas en un nuevo conjunto de datos *data*.
+```{r datos, echo=FALSE, warning=FALSE}
+data <- RawData %>%
+   select(id, host_id, host_since, host_is_superhost,
+          description, neighbourhood_group_cleansed, 
+         latitude, longitude, property_type, room_type, 
+         accommodates, bedrooms, price, minimum_nights, 
+         availability_365, last_review, review_scores_rating,                         reviews_per_month)
+```
+<br/>
+
+#### Limpieza de datos
+
+Usamos la función str, para analizar la estructura de los datos en función a su contenido.
+
+```{r str, echo=FALSE, warning=FALSE}
+str(data)
+```
+Vemos que los tipos de datos de variables, como *host_since*, *last_review*, *host_is_superhost*, *price*, no tienen el formato adecuado para el tipo de variable. También encontramos valores faltantes en las variables (*host_since*, *host_is_superhost*, *description*, *last_review*), que denotamos como NA.
+<br/>
+
+##### Transformamos estos datos a sus formatos correctos.
+
+   - formato *Date* para *host_since*, *last_review*, los valores faltantes se denotan como NA
+```{r date, warning=FALSE}
+data$host_since <- as.Date(data$host_since)
+data$last_review <- as.Date(data$last_review)
+```
+<br/>
+
+   - formato *logical* para *host_is_superhost*, los valores faltantes se denotan como NA
+```{r host super, warning=FALSE}
+data$host_is_superhost <- as.character(data$host_is_superhost)
+data$host_is_superhost[which(data$host_is_superhost == "")] <- NA
+data$host_is_superhost[which(data$host_is_superhost == "t")] <- "true"
+data$host_is_superhost[which(data$host_is_superhost == "f")] <- "false"
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+```
+<br/>
+
+   - formato *number* para *price*
+```{r price, warning=FALSE}
+data$price <- as.character(data$price)
+data$price<-parse_number(data$price)
+```
+<br/>
+
+   - formato *character* para *description*, los valores faltantes se denotan como NA 
+```{r transform NA, warning=FALSE}
+data$description <- as.character(data$description)
+data$description[which(data$description == "")] <- NA
+```   
+<br/>
+
+##### Comprobaremos el resultado obtenido.
+
+```{r str 1, echo=FALSE, warning=FALSE}
+str(data)
+```
+<br/>
+
+Vamos a realizar algunas transformaciones más, que tienen sentido lógico previo al análisis exploratorio:
+
+##### Eliminamos los valores de la variable 'price' que estén por debajo de 0.
+```{r subset, warning=FALSE}
+data <- subset(data, price > 0)
+``` 
+Como resultado, el conjunto de datos ha disminuido en 8 observaciones.
+<br/>
+
+##### Veamos el número total de valores perdidos para las variables.
+```{r datos faltantes total, echo=FALSE, warning=FALSE}
+colSums(is.na(data))
+aggr(data, numbers=TRUE, sortVars=TRUE)
+``` 
+<br/>
+
+```{r matrixplot, echo=FALSE, warning=FALSE}
+matrixplot(data)
+``` 
+<br/>
+
+<span style="color:red">(Revisar este apartado, no lo entiendo bien - Alvaro)</span>
+En nuestro caso, no solo nos interesa la fecha de registro del propietario de la propiedad inmobiliaria en airbnb y la fecha de la última revisión, sino que nos interesa directamente la experiencia del propietario sobre el recurso y cuánto tiempo ha pasado desde la ultima revision de la propiedad.
+
+Cuanta más experiencia tiene un vendedor, más confianza tienen los consumidores en él y, en consecuencia, más demanda, lo que tiene un efecto positivo en el precio. Las reseñas antiguas sobre el alojamiento llevan poca información para los consumidores, aumentan sus riesgos y, en consecuencia, la demanda cae, lo que afecta negativamente al precio.
+
+Por lo tanto, en lugar de una variable, calcularemos la variable de la experiencia del propietario en el recurso *host_exp_days* (el número de días) y reemplazaremos la variable de la fecha de la última revocación por la variable del número de días desde la última revocación *last_review_days*.
+
+```{r transform, warning=FALSE}
+data$host_exp_days <- as.integer(max(data$host_since, na.rm = TRUE)-data$host_since)
+data$last_review_days <- as.integer(max(data$last_review, na.rm = TRUE)-data$last_review)
+
+data$host_since <- NULL
+data$last_review <- NULL
+```
+<br/>
+
+También nos interesa el número de alojamientos que tiene cada propietario.
+<span style="color:red">Calcularemos (que quieres decir con esto Katia?)</span> y añadimos la variable *host_listings_count*.
+
+```{r transform listings count, warning=FALSE}
+data <- data %>%
+  add_count(host_id)
+colnames(data)[colnames(data) == 'n'] <- 'host_listings_count'
+```
+<br/>
+
+Además del precio total del alquiler del alojamiento, nos interesa calcular el precio del alquiler por persona *price_per_person*.
+
+```{r transform price/person, warning=FALSE}
+data$price_per_person <- data$price/data$accommodates
+```
+<br/>
+
+El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis. Pero esta variable sirve para obtener el número de listing que tiene un host. 
+```{r id null, warning=FALSE}
+data$id <- NULL
+```
+<br/>
+
+### Separación Train-Test
+
+Ahora podemos dividir nuestros datos en 70% para grupo de training y 30% para grupo de testing. Separamos los datos por distritos, para un reparto más homogéneo en ambos grupos (*neighbourhood_group_cleansed*).
+
+```{r slice, warning=FALSE}
+set.seed(12345)
+inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
+                                  p = .7, list = FALSE, times = 1)
+data_train <- slice(data, inTraining) 
+data_test <- slice(data, -inTraining)
+```
+Obtuvimos  `r nrow(data_train)` observaciones en el conjunto de datos *data_train* y  `r nrow(data_test)` en el conjunto de datos *data_test*.
+<br/>
+
+## 04 Análisis exploratorio inicial : EDA
+
+### 04.01 Análisis Univariante
+
+#### Estudio de la variable price
+
+```{r precios, warning=FALSE}
+price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red")
+
+log_price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10) + geom_density(alpha = .2, fill="red") + xlim(c(0,500)) + ggtitle('Transformación logarítmica')
+
+boxplot_price <- ggplot(data_train, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans='log10')
+
+quantile_price <- data.frame(quantile(data_train$price))
+
+tbl <- tableGrob(quantile_price)
+
+grid.arrange(price, log_price,boxplot_price,tbl, ncol=2, nrow =2, as.table=TRUE)
+```
+La variable $price$, la cual queremos predecir, en general se concentra entre los 37 y los 105€, y en general el número de Airbnbs decrece con el precio.
+<br/>
+
+#### neighbourhood_group_cleansed
+
+```{r distritos, warning=FALSE}
+cuentaDistritos <- data_train %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+ggplot(data_train, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count')
+```
+
+Atendiendo al distrito, el que más AirBnb tiene, por mucho, es el Centro.
+
+
+#### room_type
+
+```{r tipos, warning=FALSE}
+ggplot(data_train, aes(x=room_type)) + geom_histogram(stat='count')
+
+cuentaTipos <- data_train %>%
+  group_by(room_type) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaTipos
+```
+
+#### accommodates
+
+```{r accommodates, warning=FALSE}
+ggplot(data_train, aes(x=accommodates)) + geom_histogram(stat='count')
+
+cuentaAccommodates <- data_train %>%
+  group_by(accommodates) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaAccommodates
+
+```
+
+Aproximadamente un tercio de las propiedades son para 2 personas, y la gran mayoría son para 6 o menos.
+
+
+#### bedrooms
+
+```{r bedrooms, warning=FALSE}
+ggplot(data_train, aes(x=bedrooms)) + geom_histogram(stat='count')
+
+cuentaBedrooms <- data_train %>%
+  group_by(bedrooms) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaBedrooms
+
+```
+
+Dos tercios de las propiedades tienen 1 dormitorio, y el resto menos. Hay 1434 datos faltantes.
+
+
+#### beds
+
+```{r beds, warning=FALSE}
+ggplot(data_train, aes(x=beds)) + geom_histogram(stat='count')
+
+cuentaBeds <- data_train %>%
+  group_by(beds) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaBeds
+
+```
+
+La mayoría de las propiedades tienen entre 1 y 4 camas.
+
+
+#### minimum_nights
+
+```{r minNights, warning=FALSE}
+ggplot(data_train, aes(x=minimum_nights)) + geom_histogram(binwidth = 1)  + scale_y_continuous(trans='log10')
+
+cuentaMinNights <- data %>%
+  group_by(minimum_nights) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaMinNights
+
+```
+
+#### minimum_nights_avg_ntm
+
+```{r minNightsAvg, warning=FALSE}
+ggplot(data_train, aes(x=minimum_nights_avg_ntm)) + geom_histogram(binwidth = 1)  + scale_y_continuous(trans='log10')
+
+cuentaMinNightsAvg <- data %>%
+  group_by(minimum_nights_avg_ntm) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaMinNightsAvg
+
+```
+
+#### maximum_nights_avg_ntm
+
+```{r maxNightsAvg, warning=FALSE}
+ggplot(data_train, aes(x=maximum_nights_avg_ntm)) + geom_histogram(binwidth = 5)  + scale_y_continuous(trans='log10') + xlim(c(0,2000))
+
+cuentaMaxNightsAvg <- data_train %>%
+  group_by(maximum_nights_avg_ntm) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+cuentaMaxNightsAvg
+
+
+```
+
+
+#### host_since
+
+```{r host_since, warning=FALSE}
+ggplot(data_train, aes(x=host_since)) + geom_histogram(binwidth = 30)
+
+```
+
+
+#### host_is_superhost
+
+```{r host_is_superhost, warning=FALSE}
+ggplot(data_train, aes(x=host_is_superhost)) + geom_histogram(stat="count")
+```
+
+#### availability_365
+
+```{r availability_365, warning=FALSE}
+ggplot(data_train, aes(x=availability_365)) + geom_histogram(stat="count") # TODO Profundizar más
+
+sum(data_train$availability_365==0)
+```
+
+
+## 5. Outliers
+
+
+```{r outliers, warning=FALSE}
+
+outliers <- data_train[data$price > quantile(data_train$price)[4],]
+
+count(outliers)
+
+ggplot(outliers, aes(x=price)) + geom_histogram(binwidth = 10)
+
+ggplot(outliers, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
+
+outliers <- outliers %>% mutate(pricePP = price/accommodates)
+
+quantile(outliers$pricePP)
+
+outliersPerPerson <- outliers[(outliers$pricePP) > quantile(outliers$pricePP)[4],]
+
+ggplot(outliersPerPerson, aes(y=pricePP)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
+
+count(outliersPerPerson[outliersPerPerson$pricePP > 1000, ])
+
+head(outliersPerPerson[outliersPerPerson$pricePP > 1000, "description"])
+
+insane <- outliersPerPerson[outliersPerPerson$pricePP > 1000,]
+
+count(insane)
+
+summary(insane)
+
+ggplot(insane, aes(x=price)) + geom_histogram()
+
+cuentaDistritosInsane <- insane %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise(count = n()) %>%
+  arrange(-count)
+
+ggplot(insane, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count')
+
+ggplot(insane, aes(x=room_type, y=pricePP)) + geom_boxplot()
+
+insane$accommodates
+
+insane$pricePP
+
+insane[insane$neighbourhood_group_cleansed=="Villaverde", c("description","price")]
+
+insane$reviews_per_month
+
+# TODO Yo todo lo que supere los 105-150€/persona lo quitaba
+
+```
+
+
+## 05 Estudio de valores faltantes
+
+```{r summary, warning=FALSE}
+summary(data)
+```
+Viendo el summary se puede comprobar que:
+
+* $host\_since$ tiene 16 NAs.
+
+* $bedrooms$ tiene 1022 NAs.
+
+* $price$ no tiene NAs, pero el máximo es $9999.0, lo cual no parece verosímil.
+
+* $minimum\_nights\_avg\_ntm$ y $maximum\_nights\_avg\_ntm$ tienen 1 NA. Deberíamos comprobar si pertenecen al mismo id.
+
+* Es factible que $availability\_365$ tenga valores a 0, pero altamente improbable. Debemos estudiarlo.
+
+* Hay más de 3000 NA en todas las variables de Review.
+
