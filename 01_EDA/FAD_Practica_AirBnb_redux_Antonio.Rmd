@@ -62,12 +62,13 @@ El objetivo general de esta práctica es proponer un modelo de regresión lineal
 Dicho objetivo, a su vez se dividirá en los siguientes pasos:
 
 1. Selección preliminar de variables.
-2. Realización de un análisis exploratorio univariante de los datos.
-3. Realización de un análisis exploratorio multivariante de los datos.
-4. Control de calidad del dato.
-5. Imputación de datos faltantes.
-6. Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
-7. Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
+2. Separación del conjunto de datos en dos grupos: Training (70% de los datos) y Test (30% de los datos)
+3. Realización de un análisis exploratorio univariante de los datos.
+4. Realización de un análisis exploratorio multivariante de los datos.
+5. Control de calidad del dato.
+6. Imputación de datos faltantes.
+7. Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
+8. Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
 
 <br/>
 <br/>
@@ -79,7 +80,7 @@ RawData <- read.csv("../00_DatosOriginales/listings.csv")
 ```
 
 
-El conjunto de datos original está formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables:
+El conjunto de datos original está formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables, que son:
 
 
 ```{r, warning=FALSE}
@@ -129,80 +130,9 @@ Aunque se intuye antes de comenzar que hay variables que van a aportar poca info
 
 <br/>
 
+## Separación del conjunto de datos en dos grupos
 
-
-
-## Análisis exploratorio univariante
-
-```{r str 1, echo=FALSE, warning=FALSE}
-str(data)
-
-```
-<br/>
-
-Vamos a realizar algunas transformaciones más, que tienen sentido lógico previo al análisis exploratorio:
-
-##### Eliminamos los valores de la variable 'price' que estén por debajo de 0.
-```{r subset, warning=FALSE}
-data <- subset(data, price > 0)
-```
-Como resultado, el conjunto de datos ha disminuido en 8 observaciones.
-<br/>
-
-##### Veamos el número total de valores perdidos para las variables.
-```{r datos faltantes total, echo=FALSE, warning=FALSE}
-colSums(is.na(data))
-aggr(data, numbers=TRUE, sortVars=TRUE)
-```
-<br/>
-
-```{r matrixplot, echo=FALSE, warning=FALSE}
-matrixplot(data)
-```
-<br/>
-
-En nuestro caso, además de interesarnos la fecha de registro de la propiedad en airbnb por el propietario (variable host_since) y la fecha de la última review, también nos interesa directamente la experiencia del propietario y cuánto tiempo ha pasado desde la ultima revision de la propiedad.
-
-Cuanta más experiencia tiene un vendedor, más confianza genera en los consumidores. Como consecuencia se genera más demanda, lo que tiene un efecto positivo en el precio. Las reseñas con fechas antiguas generan dudas en el consumidor, y no reflejan información actual. En consecuencia, la demanda cae, lo que afecta negativamente al precio.
-
-Por lo tanto, en lugar de usar la variable host_since, calcularemos la variable de la cantidad de experiencia que tiene el propietario, *host_exp_days* (el número de días) y reemplazaremos la variable de la fecha de la última review por la variable del número de días desde la última review *last_review_days*.
-
-```{r transform, warning=FALSE}
-data$host_exp_days <- as.integer(max(data$host_since, na.rm = TRUE)-data$host_since)
-data$last_review_days <- as.integer(max(data$last_review, na.rm = TRUE)-data$last_review)
-
-data$host_since <- NULL
-data$last_review <- NULL
-```
-<br/>
-
-También nos interesa el número de alojamientos que tiene cada propietario.
-<span style="color:red">Calcularemos (que quieres decir con esto Katia?)</span> y añadimos la variable *host_listings_count*.
-
-```{r transform listings count, warning=FALSE}
-data <- data %>%
-  add_count(host_id)
-colnames(data)[colnames(data) == 'n'] <- 'host_listings_count'
-```
-<br/>
-
-Además del precio total del alquiler del alojamiento, nos interesa calcular el precio del alquiler por persona *price_per_person*.
-
-```{r transform price/person, warning=FALSE}
-data$price_per_person <- data$price/data$accommodates
-knit_exit()
-```
-<br/>
-
-El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis. Pero esta variable sirve para obtener el número de listing que tiene un host.
-```{r id null, warning=FALSE}
-data$id <- NULL
-```
-<br/>
-
-### Separación Train-Test
-
-Ahora podemos dividir nuestros datos en 70% para grupo de training y 30% para grupo de testing. Separamos los datos por distritos, para un reparto más homogéneo en ambos grupos (*neighbourhood_group_cleansed*).
+Se procede a dividir el conjunto de datos en dos partes: el 70% para grupo de Training y 30% para grupo de Test. No se considera necesario un muestreo estratificado debido a que el número de observaciones es grande. Se hará de manera pseudoaleatoria:
 
 ```{r slice, warning=FALSE}
 set.seed(12345)
@@ -210,10 +140,27 @@ inTraining <- createDataPartition(pull(RawData, neighbourhood_group_cleansed),
                                   p = .7, list = FALSE, times = 1)
 data_train <- slice(data, inTraining)
 data_test <- slice(data, -inTraining)
+
+groups <- data.frame("Grupos" = c("Training","Test"), "Observaciones" = c(nrow(data_train),nrow(data_test)), "Porcentaje" = c(round(nrow(data_train)*100/nrow(data),1),round(nrow(data_test)*100/nrow(data),1)))
+
+kable(groups)
 ```
-Obtuvimos  `r nrow(data_train)` observaciones en el conjunto de datos *data_train* y  `r nrow(data_test)` en el conjunto de datos *data_test*.
+
+A partir de ahora, y hasta que se ponga a prueba el modelo, se utilizarán exclusivamente los datos del grupo de Training.
 <br/>
 <br/>
+
+```{r exit}
+knit_exit()
+```
+
+## Análisis exploratorio univariante
+
+```{r str 1, echo=FALSE, warning=FALSE}
+str(data)
+```
+<br/>
+
 
 ## 04 Análisis exploratorio inicial : EDA
 
@@ -479,6 +426,70 @@ grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 ```
 <br/>
 <br/>
+
+## Transformaciones adicionales TODO
+
+Vamos a realizar algunas transformaciones más, que tienen sentido lógico previo al análisis exploratorio:
+
+##### Eliminamos los valores de la variable 'price' que estén por debajo de 0.
+```{r subset, warning=FALSE}
+data <- subset(data, price > 0)
+```
+Como resultado, el conjunto de datos ha disminuido en 8 observaciones.
+<br/>
+
+##### Veamos el número total de valores perdidos para las variables.
+```{r datos faltantes total, echo=FALSE, warning=FALSE}
+colSums(is.na(data))
+aggr(data, numbers=TRUE, sortVars=TRUE)
+```
+<br/>
+
+```{r matrixplot, echo=FALSE, warning=FALSE}
+matrixplot(data)
+```
+<br/>
+
+En nuestro caso, además de interesarnos la fecha de registro de la propiedad en airbnb por el propietario (variable host_since) y la fecha de la última review, también nos interesa directamente la experiencia del propietario y cuánto tiempo ha pasado desde la ultima revision de la propiedad.
+
+Cuanta más experiencia tiene un vendedor, más confianza genera en los consumidores. Como consecuencia se genera más demanda, lo que tiene un efecto positivo en el precio. Las reseñas con fechas antiguas generan dudas en el consumidor, y no reflejan información actual. En consecuencia, la demanda cae, lo que afecta negativamente al precio.
+
+Por lo tanto, en lugar de usar la variable host_since, calcularemos la variable de la cantidad de experiencia que tiene el propietario, *host_exp_days* (el número de días) y reemplazaremos la variable de la fecha de la última review por la variable del número de días desde la última review *last_review_days*.
+
+```{r transform, warning=FALSE}
+data$host_exp_days <- as.integer(max(data$host_since, na.rm = TRUE)-data$host_since)
+data$last_review_days <- as.integer(max(data$last_review, na.rm = TRUE)-data$last_review)
+
+data$host_since <- NULL
+data$last_review <- NULL
+```
+<br/>
+
+También nos interesa el número de alojamientos que tiene cada propietario.
+<span style="color:red">Calcularemos (que quieres decir con esto Katia?)</span> y añadimos la variable *host_listings_count*.
+
+```{r transform listings count, warning=FALSE}
+data <- data %>%
+  add_count(host_id)
+colnames(data)[colnames(data) == 'n'] <- 'host_listings_count'
+```
+<br/>
+
+Además del precio total del alquiler del alojamiento, nos interesa calcular el precio del alquiler por persona *price_per_person*.
+
+```{r transform price/person, warning=FALSE}
+data$price_per_person <- data$price/data$accommodates
+```
+<br/>
+
+El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis. Pero esta variable sirve para obtener el número de listing que tiene un host.
+```{r id null, warning=FALSE}
+data$id <- NULL
+```
+<br/>
+
+
+
 
 ### 04.01 Análisis Multivariante
 
