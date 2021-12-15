@@ -99,9 +99,9 @@ Algunas otras variables a estudiar, además de las anteriores mencionadas:
 
 - number_of_reviews (parecería evidente pensar en una relación a priori entre esta variable y price)
 
-También observamos a priori, que se podría hacer una combinación de todas las variables distintas para review/scores haciendo una media, en una sola variable, y después estudiar la relación de esa variable con precio. Sería interesante hacer un análisis multivariante a tres, con las variables price, number_of_reviews y *final_scores (posible variable combinación de todas las otras)
+Observamos a priori, que se podría hacer una combinación de todas las variables distintas para review/scores haciendo una media, en una sola variable, y después estudiar la relación de esa variable con precio. Sería interesante hacer un análisis multivariante a tres, con las variables price, number_of_reviews y *final_scores (posible variable combinación de todas las otras)
 
-Sería importante determinar también, si por el ejemplo la variable $review_scores_rating$ o la variable $review_scores_value$, son de hecho una combinación de las demás, como la media aritmética de todas las otras. Es importante estudiar esto para que la regresión lineal sea adecuada. Si podemos demostrar que una de estas variables es la media de todas las demás, podriamos simplemente quedarnos con una de estas y descartar el resto. Para ello habrá que estudiar el coeficiente de correlación.
+Sería importante determinar también, si por el ejemplo la variable $review_scores_rating$ o la variable $review_scores_value$, son de hecho una combinación de las demás. Si podemos demostrar que una de estas variables es la media de todas las demás, podriamos simplemente quedarnos con una de estas y descartar el resto.
 
 #### Vamos primero a analizar de forma general las variables seleccionadas
 
@@ -251,7 +251,7 @@ pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 # Matrix format
 mat <- pdr_mat
 matriz <- as.matrix(mat)
-heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main="Heatmap", cexCol=0.6)
+heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(matriz==0, NA, matriz), notecex=1.0,na.color=par("bg"), cexCol=0.6, col= colorRampPalette(brewer.pal(10, "Reds"))(15))
 # Heatmap
 #d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
 
@@ -267,12 +267,11 @@ sorted_spdf_df <- spdf_df %>% arrange(name)
 
 #Añadimos datos de población al geojson file
 sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
-sorted_spdf_df
+
 # Gráfico de airbnbs localizadas por latitud y longitud
 adjusted_price <- subset(data_train, price >0 & price < 150)
 price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1)
 price_map
-
 ```
 <br/>
 
