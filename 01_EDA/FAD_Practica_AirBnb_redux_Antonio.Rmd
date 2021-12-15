@@ -79,7 +79,7 @@ RawData <- read.csv("../00_DatosOriginales/listings.csv")
 ```
 
 
-El conjunto de datos está formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables:
+El conjunto de datos original está formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables:
 
 
 ```{r, warning=FALSE}
@@ -96,10 +96,32 @@ data <- RawData %>%
 ```
 
 ```{r variablesOfInterest, echo=FALSE, warning=FALSE}
+
+# Corrección de tipos
+
+data$host_since <- as.Date(data$host_since)
+data$last_review <- as.Date(data$last_review)
+
+data$host_is_superhost <- as.character(data$host_is_superhost)
+data$host_is_superhost[which(data$host_is_superhost == "")] <- NA
+data$host_is_superhost[which(data$host_is_superhost == "t")] <- "true"
+data$host_is_superhost[which(data$host_is_superhost == "f")] <- "false"
+data$host_is_superhost <- to_logical(data$host_is_superhost)
+
+data$price <- as.character(data$price)
+data$price<-parse_number(data$price)
+
+data$description <- as.character(data$description)
+data$description[which(data$description == "")] <- NA
+
+# Selección de variables de interés
    
 voi <- data.frame("Variable" = c("id", "host_id", "host_since", "host_is_superhost", "description", "neighbourhood_group_cleansed", "latitude", "longitude", "property_type", "room_type", "accommodates", "bedrooms", "beds", "price", "minimum_nights", "minimum_nights_avg_ntm", "maximum_nights_avg_ntm", "availability_365", "last_review", "review_scores_rating", "review_scores_accuracy", "review_scores_cleanliness", "review_scores_checkin", "review_scores_communication", "review_scores_location", "review_scores_value", "reviews_per_month"),
          
                   "Definición" = c("identificador único de cada espacio alquilable", "identificador único de cada arrendador", "fecha en que el arrendador se dio de alta en la plataforma","indicador lógico de si el arrendador tiene excelentes puntuaciones","descripción del espacio alquilable","distrito en que se encuentra el espacio alquilable","coordenada de latitud del espacio alquilable","coordenada de longitud del espacio alquilable","tipo de propiedad","tipo de habitación","capacidad máxima del espacio","número de cuartos de baño","número de camas de la habitación","precio por noche en moneda local","mínimo de noches por estancia","promedio de mínimo de noches durante los próximos 365 días","promedio de máximo de noches durante los próximos 365 días","disponibilidad del espacio durante los próximos 365 días","fecha de la última puntuación","puntuación general del espacio","puntuación sobre la realidad/descripción del espacio","puntuación sobre la limpieza del espacio","puntuación sobre el checkin","puntuación sobre lo bien que está comunicado el espacio","puntuación de la localización del espacio","puntuación del valor del espacio","media de número de reviews por espacio durante un mes"))
+
+voi$Tipo <- sapply(data[,voi$Variable],class)
+voi <- voi[,c(1,3,2)]
 
 kable(voi)
 ```   
@@ -108,52 +130,13 @@ Aunque se intuye antes de comenzar que hay variables que van a aportar poca info
 <br/>
 
 
-#### Conversión de tipos
 
-Usamos la función str, para analizar la estructura de los datos en función a su contenido.
 
-```{r str, echo=FALSE, warning=FALSE}
-str(data)
-```
-Se comprueba que las variables $host_since$, $last_review$, $host_is_superhost$ y $price$ tienen asignado el tipo que les corresponde. Debido a ello se les asignarán los siguientes tipos:
-<br/>
-
-   - *Date* para $host\_since$, $last\_review$:
-```{r date, warning=FALSE}
-data$host_since <- as.Date(data$host_since)
-data$last_review <- as.Date(data$last_review)
-```
-<br/>
-
-   - *logical* para $host\_is\_superhost$:
-```{r host_super, warning=FALSE}
-data$host_is_superhost <- as.character(data$host_is_superhost)
-data$host_is_superhost[which(data$host_is_superhost == "")] <- NA
-data$host_is_superhost[which(data$host_is_superhost == "t")] <- "true"
-data$host_is_superhost[which(data$host_is_superhost == "f")] <- "false"
-data$host_is_superhost <- to_logical(data$host_is_superhost)
-```
-<br/>
-
-   - *number* para $price$:
-```{r price, warning=FALSE}
-data$price <- as.character(data$price)
-data$price<-parse_number(data$price)
-```
-<br/>
-
-   - formato *character* para *description*, los valores faltantes se denotan como NA 
-```{r transform NA, warning=FALSE}
-data$description <- as.character(data$description)
-data$description[which(data$description == "")] <- NA
-```   
-<br/>
-
-#### Corrección de valores erróneos e imputación de valores faltantes.
+## Análisis exploratorio univariante
 
 ```{r str 1, echo=FALSE, warning=FALSE}
 str(data)
-knit_exit()
+
 ```
 <br/>
 
@@ -207,6 +190,7 @@ Además del precio total del alquiler del alojamiento, nos interesa calcular el 
 
 ```{r transform price/person, warning=FALSE}
 data$price_per_person <- data$price/data$accommodates
+knit_exit()
 ```
 <br/>
 
