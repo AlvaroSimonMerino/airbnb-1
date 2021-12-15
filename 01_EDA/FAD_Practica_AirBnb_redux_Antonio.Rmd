@@ -21,38 +21,60 @@ output:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
-## 00 Descripción de la base de datos y librerias
+## 00. Descripción de la base de datos y librerias
 
-Para la práctica hemos seleccionado el dataset *listings.csv* (Airbnb Madrid, 2021-09-10), una base de datos obtenida de insideairbnb.com con los alquileres de AirBnb de Madrid. Esta base de datos es de dominio público y consta de 22 variables con 18909 observaciones.
+Para la realización de esta práctica se ha seleccionado el dataset *listings.csv*  (Airbnb Madrid, 2021-09-10), una base de datos obtenida de *insideairbnb.com* con los alquileres de AirBnb de Madrid. Esta base de datos es de dominio público y consta de 74 variables con 18909 observaciones. Puede ser descargada a través del siguiente enlace: http://data.insideairbnb.com/spain/comunidad-de-madrid/madrid/2021-09-10/data/listings.csv.gz
 
-La base de datos puede descargarse en el siguiente enlace: http://insideairbnb.com/get-the-data.html
+<br/>
 
-
-Las librerias usadas para esta práctica son las siguientes:
+Las librerías usadas para esta práctica son las siguientes:
 
 -caret
+
 -dplyr
+
 -ggplot2
+
 -stringr
+
 -readr
+
 -batman
+
 -knitr
+
 -tidyr
+
 -PASWR2
+
 -scales
+
 -nortest
+
 -cowplot
+
 -mice
+
 -VIM
+
 -ggcorrplot
+
 -psych
+
 -ipred
+
 -DMwR
+
 -car
+
 -geojsonio
+
 -shiny
+
 -ggally
+
 -RColorBrewer
+
 
 ```{r include=FALSE, warning=FALSE}
 library(caret)
@@ -82,7 +104,7 @@ library(RColorBrewer)
 <br/>
 <br/>
 
-## 01 Introducción a la práctica
+## 01 Introducción a la práctica TODO: resumir y/o graficar
 
 El turismo es una de las principales actividades economicas en España, antes del COVID-19 formaba una media de alrededor del 15,0% del PIB anual. Además, si tenemos en cuenta los tipos de actividades económicas adyacentes, la contribución del turismo será mucho mayor.
 
@@ -99,32 +121,35 @@ Dado que la base de datos elegida está relacionada con el alquiler de viviendas
 <br/>
 
 ### Objetivos generales
-- Analizar las variables de la base de datos seleccionada para su comprensión y posterior estudio.
-- Aplicar el módelo de regresión lineal múltiple para inferir la variable "price" seleccionada, que corresponde al precio de la vivienda.
+- Analizar las variables del conjunto de datos.
+- Aplicar las transformaciones necesarias cara a utilizar dichas variables como entrada en un modelo predictivo.
+- Proponer un módelo de regresión lineal múltiple para estimar la variable *price*.
 <br/>
 
 ### Objetivos específicos : Pasos
-1. Preparación de los datos.
+1. Carga de datos y conversión de los mismos a dataframe.
 
-2. Separar los datos en 2 grupos de datos: training + control y testing.
-    - El grupo training + control contiene el 70% de los datos, con el cual entrenaremos el modelo. 
-    - El grupo test contiene el 30% de los datos y se dejará como conjunto aislado hasta el final de la práctica como simulación de datos reales.
-
-  Sobre el dataset de training:
-     - transformar las variables, imputar datos (si procede);
-     - proponer un modelo inicial (e.g. regresión lineal);
-     - evaluar inicialmente el modelo mediante los resultados básicos ofrecidos por summary(model).
+2. Separación de los datos en dos grupos: training + control y testing.
+    - El grupo training + control, con el cual se entrenará el modelo, contiene el 70% de los datos. 
+    - El grupo test contiene el 30% de los datos, y se utilizará como simulación de datos reales una vez el modelo esté cerrado.
    
-3. Realizar un análisis exploratorio inicial de cada una de las variables del grupo de training.
-    - Se llevará a cabo separando las variables categóricas de las cualitativas para su posterior estudio.
+3. Realización de un análisis exploratorio inicial de cada una de las variables utilizando las observaciones del grupo de training.
+    - Durante esta fase se decidirá qué variables se utilizarán, en principio, para construir el modelo predictivo.
     
-4. Imputar las variables faltantes de la base de datos previo estudio
-5. Aplicar las transformaciones necesarias a cada una de las variables.
-6. Entrenar el modelo matemático de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable 'precio'.
-7. Usar el modelo propuesto para la predicción de la variable 'precio' con las variables del grupo testing.
-    - Transformación de variables, imputación datos (si procede), siguiendo las mismas operaciones que para el caso de training.
-    - Comparar con los datos de la columna real price en los datos de testing, para comprobar el porcentaje de aciertos/fallos.
-    - Ajustar el modelo de regresión lineal siguiendo criterios contrastados (con la teoría vista hasta el momento), para decidir las variables         que incluímos en el modelo predictivo.
+4. Imputación de datos faltantes.
+
+5. Transformaciones necesarias a cada una de las variables.
+
+6. Aplicación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
+
+7. Evaluación del modelo.
+
+8. Repetición de los pasos de imputación y transformación para el grupo de test.
+
+9. Aplicación del modelo sobre los datos de test.
+
+10. Análisis de resultados y conclusiones.
+
 <br/>
 <br/>
 
