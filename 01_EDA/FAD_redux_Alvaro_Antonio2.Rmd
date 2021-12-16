@@ -375,6 +375,8 @@ La variable $availability\_365$ muestra que hay alta disponibilidad en los sigui
 
 -   A 90 y 180 días desde la fecha de recolección de los datos. Estas fechas se corresponden con la semana posterior al "Puente de la Constitución" y la semana posterior a los carnavales.
 
+-   La mínima disponibilidad se encuentra entre los días 200 y 220, que se corresponden con la Semana Santa.
+
 -   Entre los 320 y los 350 días, que se corresponden con el mes de Agosto.
 
 -   A los 360 días, que se corresponde con el inicio del mes de Septiembre.
@@ -384,45 +386,15 @@ Dado que nuestros datos no contienen la evolución temporal de los precios, la v
 
 <br/>
 
-#### **Variables review_scores**
+#### **Variables: Grupo review_scores y reviews_per_month**
 
-Observamos a priori, que se podría hacer una combinación de todas las variables distintas para review/scores haciendo una media, en una sola variable, y después estudiar la relación de esa variable con precio.
-Sería interesante hacer un análisis multivariante a tres, con las variables price, number_of_reviews y \*final_scores (posible variable combinación de todas las otras)
 
-Sería importante determinar también, si por el ejemplo la variable $review_scores_rating$ o la variable $review_scores_value$, son de hecho una combinación de las demás.
-Si podemos demostrar que una de estas variables es la media de todas las demás, podriamos simplemente quedarnos con una de estas y descartar el resto.
+```{r ratings, message=FALSE, warning=FALSE}
 
-<br/>
-
-Primero analizaremos las condiciones generales de las variables
-
-```{r data, fig.height=5.5, fig.width=11, message=FALSE, warning=FALSE}
-
-knit_exit()
 scores <- data_train %>%
   select(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
 
-head_theme <- gridExtra::ttheme_default(
-    core = list(fg_params=list(cex = 0.6)),
-    colhead = list(fg_params=list(cex = 0.6)),
-    rowhead = list(fg_params=list(cex = 0.6)))
 
-tbl_scores_head <- gridExtra::tableGrob(head(scores,10), theme = head_theme)
-tbl_scores_summ <- gridExtra::tableGrob(summary(scores), theme = head_theme)
-
-grid.arrange(tbl_scores_head,tbl_scores_summ, ncol=1, nrow =2, as.table=TRUE)
-```
-
-Se puede apreciar que todas tienen unas condiciones similares, con una media similar y con un sistema de puntuación númerica similar, excepto en un par de casos.
-Observamos además que todas tiene alrededor de 3600 NA más o menos.
-El primer paso sería comprobar si esos NAs coinciden en todas las variables, con respecto al ID, y más adelante determinar si es necesario imputarlos.
-A continuación, pasamos a analizar cada variable dentro de un conjunto de gráficas agrupadas para facilitar la comparación.
-
-<br/>
-
-Conjunto de Histogramas de todas las variables
-
-```{r ratings, message=FALSE, warning=FALSE}
 rs_rating <- ggplot(scores, aes(x = review_scores_rating, y=..count..)) +
   geom_histogram(binwidth = 0.5, color='black', fill = '#458B74') + xlab("Rating")+ ylab("count")
 rs_accuracy <- ggplot(scores, aes(x = review_scores_accuracy, y=..count..)) +
@@ -443,16 +415,15 @@ rp_month <- ggplot(scores, aes(x = reviews_per_month, y=..count..)) +
 grid.arrange(rs_rating, rs_accuracy, rs_cleanliness, rs_checkin, rs_communication, rs_location, rs_value, rp_month, ncol=4, nrow =2)
 ```
 
-Podemos observar que la mayoría de las reviews son positivas, con la mayor concentración de casos entre el 4 y el 5 generalmente.
-Reviews per month tiene un formato poco legible en el eje de las x, vamos a analizarla por separado para entender los datos un poco mejor.
+Podemos observar que la mayoría de las reviews son positivas, con la mayor concentración de casos entre el 4 y el 5 generalmente. Todas las variables de puntuación tienen una distribución similar, excepto en el caso de $review\_scores\_value$  y en el de $review\_scores\_rating$ por ser el promedio de todas con la anterior. Debido a esto, consideramos que únicamente se incluirá en el modelo $review\_scores\_rating$.
 
-<br/>
+$reviews\_per\_month$ indica que la mayoría de espacios tienen pocas o ninguna review al mes. La representamos más en detalle:
 
 ```{r per month, message=FALSE, warning=FALSE}
-str(scores$reviews_per_month)
-summary(scores$reviews_per_month)
+#str(scores$reviews_per_month)
+#summary(scores$reviews_per_month)
 rpmonth <- na.omit(scores$reviews_per_month)
-summary(rpmonth)
+#summary(rpmonth)
 
 # Creación del layout para diagramas
 layout(matrix(c(1,2),2,1, byrow=TRUE), height = c(1,8))
@@ -461,18 +432,35 @@ layout(matrix(c(1,2),2,1, byrow=TRUE), height = c(1,8))
 par(mar=c(0, 5.1, 1.1, 2.1))
 boxplot(rpmonth , horizontal=TRUE, xaxt="n" , col="#FFC125" , frame=F)
 par(mar=c(4.5, 5.1, 1.1, 2.1))
-hist(rpmonth , breaks=40 , col='#8B3A62' , border=F , main="", ylab="nº reviews", xlab="Media de reviews en 30", xlim=c(0,8))
+hist(rpmonth , breaks=40 , col='#8B3A62' , border=F , main="", ylab="count", xlab="Promedio de reviews/mes", xlim=c(0,8))
 
 ```
 
-Como podemos apreciar en este gráfico, la mayoria de los airbnb en la base de datos, obtienen entre 0 y 2 reviews por mes de media, con más de 4000 personas con una media de 0.25 reviews por mes.
-Este resultado tiene sentido, ya que en general las personas suelen estar un par de semanas de vacaciones, y suele haber mayor concetración de turistas en ciertos meses del año.
+
+La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por mes de media, con más de 4000 personas con una media de 0.25 reviews por mes. Este resultado tiene sentido, ya que en general las personas suelen estar un par de semanas de vacaciones, y suele haber mayor concetración de turistas en ciertas épocas del año.
+
+
+
+```{r scores, fig.height=5.5, fig.width=11, message=FALSE, warning=FALSE}
+
+# head_theme <- gridExtra::ttheme_default(
+#     core = list(fg_params=list(cex = 0.6)),
+#     colhead = list(fg_params=list(cex = 0.6)),
+#     rowhead = list(fg_params=list(cex = 0.6)))
+# 
+# tbl_scores_head <- gridExtra::tableGrob(head(scores,10), theme = head_theme)
+# tbl_scores_summ <- gridExtra::tableGrob(summary(scores), theme = head_theme)
+# 
+# grid.arrange(tbl_scores_head,tbl_scores_summ, ncol=1, nrow =2, as.table=TRUE)
+```
 
 <br/>
 
 #### **Variables host_since y host_is_superhost**
 
 ```{r host, message=FALSE, warning=FALSE}
+
+knit_exit()
 # Host exp days
 host_since <- ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
 
