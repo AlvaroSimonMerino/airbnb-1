@@ -389,7 +389,7 @@ Dado que nuestros datos no contienen la evolución temporal de los precios, la v
 #### **Variables: Grupo review_scores y reviews_per_month**
 
 
-```{r ratings, message=FALSE, warning=FALSE}
+```{r ratings, message=FALSE, warning=FALSE, fig.align="center"}
 
 scores <- data_train %>%
   select(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
@@ -419,7 +419,7 @@ Podemos observar que la mayoría de las reviews son positivas, con la mayor conc
 
 $reviews\_per\_month$ indica que la mayoría de espacios tienen pocas o ninguna review al mes. La representamos más en detalle:
 
-```{r per month, message=FALSE, warning=FALSE}
+```{r per month, message=FALSE, warning=FALSE, fig.align="center"}
 #str(scores$reviews_per_month)
 #summary(scores$reviews_per_month)
 rpmonth <- na.omit(scores$reviews_per_month)
@@ -456,27 +456,52 @@ La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por
 
 <br/>
 
-#### **Variables host_since y host_is_superhost**
+#### **Variables: host_since y host_is_superhost**
 
-```{r host, message=FALSE, warning=FALSE}
+Se ha incluido la variable $host\_since$ para comprobar si existe una correlación entre la experiencia del arrendatario y el precio del espacio. Su distribución es la siguiente:
+
+```{r host_since, message=FALSE, warning=FALSE, fig.align="center"}
 
 
 # Host exp days
-host_since <- ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
+ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
+
+```
+
+Además, existe la variable $host\_is\_superhost$, que indica un grado de excelencia otorgado por la plataforma al arrendatario en base a los siguientes criterios:
+
+-   Rating medio igual o superior a 4.8 durante el último año.
+
+-   Han conseguido más de 10 estancias en el último año o 100 noches durante las 3 últimas estancias.
+
+-   Ratio de cancelación inferior al 1%.
+
+-   Un ratio de respuesta igual o superior al 90%.
+
+<br/>
+
+Creemos que esta variable también podría influir en el precio de los espacios. La proporción de *superhosts* es la siguiente:
+
+```{r his, message=FALSE, warning=FALSE, fig.align="center"}
 
 # Host is super host
-host_sh <- ggplot(data_train, aes(x=host_is_superhost, fill =host_is_superhost, alpha = host_is_superhost)) + geom_histogram(stat='count', col= 'black', fill='darkorange3') +
+ggplot(na.omit(data_train), aes(x=host_is_superhost, fill =host_is_superhost, alpha = host_is_superhost)) + geom_histogram(stat='count', col= 'black', fill='darkorange3') +
   theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
 
-#Comparativa ratings con host
-rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) +
-  geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
-grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 ```
+
 
 <br/> <br/>
 
-## Eliminación de valores
+## Control de calidad del dato
+
+``` {r calidad}
+
+knit_exit()
+
+```
+
+## Imputación de datos
 
 ## Análisis exploratorio multivariante
 
@@ -484,7 +509,7 @@ grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 
 ```{r priceVSroomtype, warning=FALSE, message=FALSE}
 
-knit_exit()
+
 # Price vs room type
 price_rtyp <- ggplot(data_train, aes(x=room_type, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
 
@@ -602,6 +627,23 @@ heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(ma
 ```
 
 <br/> <br/>
+
+#### host_since y superhosts
+```{r host, message=FALSE, warning=FALSE}
+
+
+# Host exp days
+host_since <- ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
+
+# Host is super host
+host_sh <- ggplot(data_train, aes(x=host_is_superhost, fill =host_is_superhost, alpha = host_is_superhost)) + geom_histogram(stat='count', col= 'black', fill='darkorange3') +
+  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
+
+#Comparativa ratings con host
+rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) +
+  geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
+grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
+```
 
 ## Estudio e imputación de valores faltantes
 
