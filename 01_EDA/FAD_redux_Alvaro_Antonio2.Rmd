@@ -322,10 +322,10 @@ Tras el análisis de las variables, agrupadas por similitud, concluímos que:
 
 <br/>
 
-#### **Variables min, máx nights, availability 360**
+#### **Variables: min_nights, max_nights, availability_365**
 
-```{r Nights, message=FALSE, warning=FALSE}
-knit_exit()
+```{r Nights, message=FALSE, warning=FALSE, fig.align="center"}
+
 # Min nights
 min_nights <- ggplot(data_train, aes(x=minimum_nights)) + geom_histogram(bindwidth = 5, fill="violetred3", col='white')  + scale_y_continuous(trans='log10') + scale_x_continuous(limits = c(0, 400)) + theme(legend.position = "none")
 
@@ -358,15 +358,29 @@ tbl_max_avg <- gridExtra::tableGrob(head(cuentaMaxNightsAvg,10), theme = mytheme
 
 # availability_365
 avail_360 <- ggplot(data_train, aes(x=availability_365)) + geom_histogram(bindwidth = 5, fill = 'orangered3', col='white')
-sum(data_train$availability_365==0)
+#sum(data_train$availability_365==0)
 
 # Agrupación de tablas
 grid.arrange(min_nights, min_night_avg, max_night_avg, avail_360, ncol=2, nrow =2)
-grid.arrange(tbl_min, tbl_min_avg, tbl_max_avg, ncol=3, nrow =1, as.table=TRUE)
+#grid.arrange(tbl_min, tbl_min_avg, tbl_max_avg, ncol=3, nrow =1, as.table=TRUE)
 ```
 
-Se aprecia un relación clara entre las variables 'minimum_nights' y 'minimum_nights_avg_ntm', por tanto concluímos que es básicamente la misma variable.
-Nos quedaremos con la segunda por tratarse de la media anual, según la definición del diccionario de la base de datos.
+Se aprecia una gran similaridad entre las variables $minimum\_nights$ y $minimum\_nights\_avg\_ntm$. Proseguiremos nuestro análisis con la segunda por tratarse de la media anual, según la definición del diccionario de la base de datos, y descartaremos la primera.
+
+
+La variable $availability\_365$ muestra que hay alta disponibilidad en los siguientes casos:
+
+
+-   Un `r round(count(data_train[data_train$availability_365==0,])*100/nrow(data_train),1)`% de los espacios están disponibles en los 10 días posteriores a la fecha de recogida de datos.
+
+-   A 90 y 180 días desde la fecha de recolección de los datos. Estas fechas se corresponden con la semana posterior al "Puente de la Constitución" y la semana posterior a los carnavales.
+
+-   Entre los 320 y los 350 días, que se corresponden con el mes de Agosto.
+
+-   A los 360 días, que se corresponde con el inicio del mes de Septiembre.
+
+
+Dado que nuestros datos no contienen la evolución temporal de los precios, la variable $availability\_365$ no aporta gran cantidad de información respecto de los mismos. Sin embargo, se podría explorar la influencia de la disponibilidad inmediata, sobre la cual se desconoce si es tan numerosa debido a la inmediatez o a la época del año en que los datos fueron recogidos.
 
 <br/>
 
@@ -383,6 +397,8 @@ Si podemos demostrar que una de estas variables es la media de todas las demás,
 Primero analizaremos las condiciones generales de las variables
 
 ```{r data, fig.height=5.5, fig.width=11, message=FALSE, warning=FALSE}
+
+knit_exit()
 scores <- data_train %>%
   select(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
 
