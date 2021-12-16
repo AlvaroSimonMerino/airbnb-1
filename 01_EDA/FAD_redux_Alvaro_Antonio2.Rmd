@@ -4,18 +4,6 @@ author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "15/12/2021"
 output:
   html_document: 
-    theme:
-      bg: "#FFFAFA"
-      fg: "#262626"
-      primary: "#838B8B"
-      secondary: "#333333"
-      output_bg: "#999999"
-      code_font: 
-        google: Open Sans
-      base_font:
-        google: Source Sans Pro
-      heading_font:
-        google: Roboto
     code_folding: hide
     toc: yes
     toc_float: yes
@@ -319,10 +307,6 @@ Tras el análisis de las variables, agrupadas por similitud, concluímos que:
 -   La mayoría de las propiedades tienen entre 1 y 4 camas.
 -   Existen `r count(data_train[data_train$beds==0,])` propiedades sin cama a pesar de que no existen propiedades sin dormitorios.
 
-Puesto que el número de personas por espacio ($accommodates$) nos parece la que mejor representa la ocupación, se descartarán las variables $bedrooms$ y $beds$.
-
-
-
 <br/>
 
 #### **Variables: min_nights, max_nights, availability_365**
@@ -459,19 +443,68 @@ La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por
 
 <br/>
 
-#### **Variables: host_since y host_is_superhost**
+#### **Variables: host_since, last_review**
 
 Se ha incluido la variable $host\_since$ para comprobar si existe una correlación entre la experiencia del arrendatario y el precio del espacio. Su distribución es la siguiente:
 
 ```{r host_since, message=FALSE, warning=FALSE, fig.align="center"}
 
-
-# Host exp days
+# Host_since
 ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
 
 ```
 
-Además, existe la variable $host\_is\_superhost$, que indica un grado de excelencia otorgado por la plataforma al arrendatario en base a los siguientes criterios:
+En nuestro caso, creemos que podríamos sacar más partido a $host\_since$ la convertimos al número de días transcurridos hasta la recolección de los datos $host\_exp\_days$. De esta forma obtendremos directamente la experiencia del propietario en la plataforma y podremos comprobar si la confianza que genera su antigüedad tiene efecto en el precio.
+
+```{r exp_days, warning=FALSE}
+data_train$host_exp_days <- as.integer(max(data_train$host_since, na.rm = TRUE)-data_train$host_since)
+data_train$host_since <- NULL
+```
+
+```{r last_review, message=FALSE, warning=FALSE, fig.align="center"}
+
+# Host_since
+ggplot(data_train, aes(x=last_review)) + geom_histogram(binwidth = 7, col='darkslategray') + theme(legend.position = "none")
+
+```
+
+
+Este gráfico es muy interesante, puesto que se aprecian claramente dos grupos: aquellos espacios que fueron alquilados por última vez antes de la pandemia del Sars-CoV-2 (el y aquellos que fueron alquilados después (`r`)
+
+```{r sarsCov2, message=FALSE, warning=FALSE, fig.align="center"}
+
+state_of_alarm <- as.Date("2020-03-15")
+
+# Plots comparativos de enero a octubre
+last_review_2019 <- ggplot(data_train, aes(x=last_review)) + geom_histogram(binwidth = 1, col='darkslategray') + theme(legend.position = "none") + xlim(c(as.Date("2019-01-01"),as.Date("2019-06-01")))
+last_review_2020 <- ggplot(data_train, aes(x=last_review)) + geom_histogram(binwidth = 1, col='darkslategray') + theme(legend.position = "none") + xlim(c(as.Date("2020-01-01"),as.Date("2020-06-01"))) + geom_vline(aes(xintercept = state_of_alarm), colour="red")
+
+grid.arrange(last_review_2019, last_review_2020, ncol=2, nrow =1)
+
+# Cálculo de reviews pre- y post estado de alarma
+
+
+
+reviewedBeforeCovid <- count(na.omit(data_train[data_train$last_review<state_of_alarm,]))
+reviewedAfterCovid <- count(na.omit(data_train[data_train$last_review>state_of_alarm,]))
+
+rBC_pct <- round(100*reviewedBeforeCovid/(reviewedBeforeCovid+reviewedAfterCovid),1)
+rAC_pct <- 100-rBC_pct
+
+```
+
+Resulta interesante comprobar el descenso abrupto del número de reviews que se produce el 15 de Marzo de 2020, primer día de Estado de Alarma en España. Según los datos, el `r rBC_pct`% de los espacios no han recibido una review hasta el día en que se recolectaron los datos (10 de Septiembre). Podría resultar interesante comparar los precios de los espacios en función de si han sido evaluados antes o después de esta fecha.
+
+Por motivos similares al caso de $host\_since$, se transformará la variable en $last\_review\_days$ utilizando el mismo procedimiento.
+
+```{r last_review_days}
+data_train$last_review_days <- as.integer(max(data_train$last_review, na.rm = TRUE)-data_train$last_review)
+data_train$last_review <- NULL
+```
+
+#### **Variable: host_is_superhost**
+
+$host\_is\_superhost$ es un indicador de excelencia otorgado por la plataforma al arrendatario en base a los siguientes criterios:
 
 -   Rating medio igual o superior a 4.8 durante el último año.
 
@@ -486,6 +519,7 @@ Además, existe la variable $host\_is\_superhost$, que indica un grado de excele
 Creemos que esta variable también podría influir en el precio de los espacios. La proporción de *superhosts* es la siguiente:
 
 ```{r his, message=FALSE, warning=FALSE, fig.align="center"}
+knit_exit()
 
 # Host is super host
 ggplot(na.omit(data_train), aes(x=host_is_superhost, fill =host_is_superhost, alpha = host_is_superhost)) + geom_histogram(stat='count', col= 'black', fill='darkorange3') +
@@ -494,20 +528,263 @@ ggplot(na.omit(data_train), aes(x=host_is_superhost, fill =host_is_superhost, al
 ```
 
 
+
+
+### Transformaciones
+
+
+
+<br/>
+
+También nos interesa el número de alojamientos que tiene cada propietario.
+Utilizaremos el numéro de casos de la variable host_id para calcular y añadir la variable *host_listings_count*.
+
+```{r transform listings count, warning=FALSE}
+data <- data %>%
+  add_count(host_id)
+colnames(data)[colnames(data) == 'n'] <- 'host_listings_count'
+```
+
+<br/>
+
+Además del precio total del alquiler del alojamiento, nos interesa calcular el precio del alquiler por persona *price_per_person*.
+
+```{r transform price/person, warning=FALSE}
+data$price_per_person <- data$price/data$accommodates
+```
+
+<br/>
+
+El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis.
+Pero esta variable sirve para obtener el número de listing que tiene un host.
+
+```{r id null, warning=FALSE}
+data$id <- NULL
+```
+
+<br/>
+
 <br/> <br/>
 
 
-## Estudio e imputación de datos faltantes.
 
-``` {r impotacion}
 
-knit_exit()
+## Estudio e imputación de valores faltantes
+
+
+```{r grafico, echo=FALSE, fig.height=5, fig.width=7.5, warning=FALSE}
+na_vis <- data.frame(t(colSums(is.na(data_train))))
+na_bar <- data.frame(Features = names(na_vis),totals=colSums(na_vis))
+
+na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features, label = totals))+
+  geom_bar(stat = "identity")+
+  ggtitle("NA Distribution")+
+  xlab("Variables")+
+  ylab("Total NAs")+
+  coord_flip()+
+  geom_text(size = 2, position = position_stack(vjust = 0.5))+
+  theme_bw()+
+  theme(plot.title = element_text(hjust = 0.5)) + theme(legend.text = element_text(colour="black", size = 8))
+```
+
+```{r fig.height=7.5, fig.width=8, warning=FALSE}
+md.pattern(data_train, rotate.names=TRUE)
+```
+
+Tenemos una pequeña cantidad de valores faltantes en *host_is_superhost* y *host_exp_days*, solo 19 observaciones.
+En este caso, los valores faltantes se pueden reemplazar directamente: - NA = false para *host_is_superhost*; - NA = 0 para *host_exp_days* <br/>
+
+
+
+Antes de continuar, guardamos el dataset en una nueva variable para no sobrescribir la previa
+
+```{r na min, warning=FALSE}
+# en primero vamos a guardardatos modificados en nuevo dataset data_train_del_na para tener accesso de datos previos
+
+data_train_del_na <- data_train
+data_train_del_na$host_is_superhost[which(is.na(data_train_del_na$host_is_superhost))] <- FALSE
+data_train_del_na$host_exp_days[which(is.na(data_train_del_na$host_exp_days))] <- 0
+```
+
+<br/>
+
+Construyamos una matriz de correlación de valores NA para otros variables (*neighbourhood*, *bedrooms*, *review_scores_rating*, *reviews_per_month*, *last_review_days*).
+
+```{r cor na, warning=FALSE}
+x <- as.data.frame(abs(is.na(data_train_del_na)))
+y <- x[, which(colSums(x) > 0)]
+
+print(cor(y))
+```
+
+```{r datos faltantes train, echo=FALSE, warning=FALSE}
+
+colSums(is.na(data_train_del_na))
+aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE)
+```
+
+Vemos que para las mismas observaciones existen valores para las variables *review_scores_rating*, *reviews_per_month*, *last_review_days*.
+Para estas variables faltan 26,6% de observaciones y para *bedrooms* - 7,5%.
+<br/>
+
+Para seleccionar un método para completar los valores faltantes, primero definimos variables altamente correlacionadas que pueden conducir a una multicolinealidad y, en consecuencia, la imposibilidad de utilizar unos métodos de cálculo.
+
+```{r datos high corr,  echo=FALSE, warning=FALSE}
+high.corr<-function(x){
+  df<-x[sapply(x,is.numeric)]
+  fit<-corr.test(df)
+  diag(fit$r)<-0
+  inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
+  return(rownames(inds))
+}
+
+
+high.corr(data_train_del_na)
 
 ```
 
+<br/>
+
+Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`).
+
+<br/>
+
+
+
+#### Imputacion por regresion
+
+<br/>
+
+Intentamos imputar datos faltantes de variable *bedrooms* usando regresion lineal, como sabemos que hay correlacion alta entre esta variable y variable *accommodates*.
+
+```{r datos na line,  echo=FALSE, warning=FALSE}
+fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
+summary(fit)
+```
+
+Vemos que los coeficientes de regresión lineal son significativos, sin embargo, R es lo suficientemente pequeño y explica solo el 47,6% de variación.
+
+<br/>
+
+Veamos en qué se diferencian los valores predichos de los originales.
+
+```{r datos na line result,  echo=FALSE, warning=FALSE}
+#actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
+#pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
+#regr.eval(actuals, pred_lm)
+```
+
+El error porcentual absoluto medio (mape) fue 26,4%, que es un indicador insatisfactorio.
+Probamos otros methodos.
+
+<br/>
+
+#### Imputacion con paquete mice
+
+<br/>
+
+Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra vamos usar methodos *rf* y *cart* de paquete *mice*.
+Los métodos de imputación predeterminados de *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se puede invertir y dará como resultado su error.
+
+Utilizando este paquete, podemos imputar datos faltantes para todas variables, quales tienen NA.
+
+Resultatos para *random forest*.
+
+```{r datos imp rf, echo=FALSE, warning=FALSE}
+
+miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)
+miceOutput <- complete(miceMod)
+```
+
+<br/>
+
+Comprobamos, si hay algunos NA en conjunto de datos.
+
+```{r datos imp rf na, echo=FALSE, warning=FALSE}
+anyNA(miceOutput) # False
+```
+
+Pues en output no tenemos datos faltantes.
+Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales.
+Mostramos el gráfico *densityplot*.
+
+```{r datos imp rf graph, echo=FALSE, warning=FALSE}
+densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+```
+
+<br/>
+
+Resultatos para *cart* (classification and regression trees).
+
+```{r datos imp cart, echo=FALSE, warning=FALSE}
+miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
+miceOutput_cart <- complete(miceMod_cart)
+```
+
+<br/>
+
+Comprobamos, si hay algunos NA en conjunto de datos.
+
+```{r datos imp cart na, echo=FALSE, warning=FALSE}
+anyNA(miceOutput_cart) # False
+```
+
+Pues en output no tenemos datos faltantes.
+Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales.
+Mostramos el gráfico *densityplot*.
+
+```{r datos imp cart graph, echo=FALSE, warning=FALSE}
+densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+```
+
+<br/>
+
+Podemos apreciar que los datos imputados son muy cercanos a lo datos observados, pero el mejor resultado para las variables lo da el methodo *cart*.
+Usamos este methodo para imputación de valores faltantes (NA) en nuestras variables.
+
+```{r datos imputacion, echo=FALSE, warning=FALSE}
+data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
+
+data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
+
+data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"]
+
+data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"]
+```
+
+<br/>
+
+Veamos, si hemos han imputado todos datos faltantes en nuestro conjunto de datos *data_train*.
+
+```{r datos cart na, echo=FALSE, warning=FALSE}
+colSums(is.na(data_train_del_na)) # False
+```
+
+En resultado ya tenemos *data_train* sin datos faltantes y podemos mas eficaz trabajar con el.
+<br/> <br/>
+
+
+```{r exit}
+knit_exit()
+```
+
+
+
 ## Análisis exploratorio multivariante
 
-#### Variable price vs variables de interés
+En esta parte se analizará la relación de la variable objetivo $price$ con  el resto de variables seleccionadas.
+
+#### neighbourhood_group_cleansed
+
+```{r priceVSngc}
+
+ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, mean(neighbourhood_group_cleansed)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none")
+
+
+
+```
+
+
 
 ```{r priceVSroomtype, warning=FALSE, message=FALSE}
 
@@ -516,7 +793,6 @@ knit_exit()
 price_rtyp <- ggplot(data_train, aes(x=room_type, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
 
 # price vs neighbourhood_group_cleansed
-ggplot(data_train, aes(x=neighbourhood_group_cleansed, y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none")# CHECK: relevant
 
 # price vs host_since
 price_hs <- ggplot(data_train, aes(x=host_since, y=price)) + geom_col(binwidth = 10, fill='#8B1C62') + scale_y_continuous(trans='log') # CHECK: Irrelevant TODO: agregar por promedio 
@@ -647,223 +923,7 @@ rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fi
 grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 ```
 
-## Estudio e imputación de valores faltantes
 
-```{r summary, warning=FALSE}
-summary(data)
-```
-
-Viendo el summary se puede comprobar que:
-
--   $host\_since$ tiene 16 NAs.
-
--   $bedrooms$ tiene 1022 NAs.
-
--   $price$ no tiene NAs, pero el máximo es \$9999.0, lo cual no parece verosímil.
-
--   $minimum\_nights\_avg\_ntm$ y $maximum\_nights\_avg\_ntm$ tienen 1 NA.
-    Deberíamos comprobar si pertenecen al mismo id.
-
--   Es factible que $availability\_365$ tenga valores a 0, pero altamente improbable.
-    Debemos estudiarlo.
-
--   Hay más de 3000 NA en todas las variables de Review.
-
--   <br/>
-
-#### Mostramos el gráfico de la distribución del número de valores perdidos.
-
-```{r grafico, echo=FALSE, fig.height=5, fig.width=7.5, warning=FALSE}
-na_vis <- data.frame(t(colSums(is.na(data_train))))
-na_bar <- data.frame(Features = names(na_vis),totals=colSums(na_vis))
-
-na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features, label = totals))+
-  geom_bar(stat = "identity")+
-  ggtitle("NA Distribution")+
-  xlab("Variables")+
-  ylab("Total NAs")+
-  coord_flip()+
-  geom_text(size = 2, position = position_stack(vjust = 0.5))+
-  theme_bw()+
-  theme(plot.title = element_text(hjust = 0.5)) + theme(legend.text = element_text(colour="black", size = 8))
-```
-
-```{r fig.height=7.5, fig.width=8, warning=FALSE}
-md.pattern(data_train, rotate.names=TRUE)
-```
-
-Tenemos una pequeña cantidad de valores faltantes en *host_is_superhost* y *host_exp_days*, solo 19 observaciones.
-En este caso, los valores faltantes se pueden reemplazar directamente: - NA = false para *host_is_superhost*; - NA = 0 para *host_exp_days* <br/>
-
-```{r exit}
-knit_exit()
-```
-
-Antes de continuar, guardamos el dataset en una nueva variable para no sobrescribir la previa
-
-```{r na min, warning=FALSE}
-# en primero vamos a guardardatos modificados en nuevo dataset data_train_del_na para tener accesso de datos previos
-
-data_train_del_na <- data_train
-data_train_del_na$host_is_superhost[which(is.na(data_train_del_na$host_is_superhost))] <- FALSE
-data_train_del_na$host_exp_days[which(is.na(data_train_del_na$host_exp_days))] <- 0
-```
-
-<br/>
-
-Construyamos una matriz de correlación de valores NA para otros variables (*neighbourhood*, *bedrooms*, *review_scores_rating*, *reviews_per_month*, *last_review_days*).
-
-```{r cor na, warning=FALSE}
-x <- as.data.frame(abs(is.na(data_train_del_na)))
-y <- x[, which(colSums(x) > 0)]
-
-print(cor(y))
-```
-
-```{r datos faltantes train, echo=FALSE, warning=FALSE}
-
-colSums(is.na(data_train_del_na))
-aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE)
-```
-
-Vemos que para las mismas observaciones existen valores para las variables *review_scores_rating*, *reviews_per_month*, *last_review_days*.
-Para estas variables faltan 26,6% de observaciones y para *bedrooms* - 7,5%.
-<br/>
-
-Para seleccionar un método para completar los valores faltantes, primero definimos variables altamente correlacionadas que pueden conducir a una multicolinealidad y, en consecuencia, la imposibilidad de utilizar unos métodos de cálculo.
-
-```{r datos high corr,  echo=FALSE, warning=FALSE}
-high.corr<-function(x){
-  df<-x[sapply(x,is.numeric)]
-  fit<-corr.test(df)
-  diag(fit$r)<-0
-  inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
-  return(rownames(inds))
-}
-
-
-high.corr(data_train_del_na)
-
-```
-
-<br/>
-
-Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`).
-
-<br/>
-
-
-#### Imputacion por regresion
-
-<br/>
-
-Intentamos imputar datos faltantes de variable *bedrooms* usando regresion lineal, como sabemos que hay correlacion alta entre esta variable y variable *accommodates*.
-
-```{r datos na line,  echo=FALSE, warning=FALSE}
-fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
-summary(fit)
-```
-
-Vemos que los coeficientes de regresión lineal son significativos, sin embargo, R es lo suficientemente pequeño y explica solo el 47,6% de variación.
-
-<br/>
-
-Veamos en qué se diferencian los valores predichos de los originales.
-
-```{r datos na line result,  echo=FALSE, warning=FALSE}
-#actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
-#pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
-#regr.eval(actuals, pred_lm)
-```
-
-El error porcentual absoluto medio (mape) fue 26,4%, que es un indicador insatisfactorio.
-Probamos otros methodos.
-
-<br/>
-
-#### Imputacion con paquete mice
-
-<br/>
-
-Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra vamos usar methodos *rf* y *cart* de paquete *mice*.
-Los métodos de imputación predeterminados de *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se puede invertir y dará como resultado su error.
-
-Utilizando este paquete, podemos imputar datos faltantes para todas variables, quales tienen NA.
-
-Resultatos para *random forest*.
-
-```{r datos imp rf, echo=FALSE, warning=FALSE}
-
-miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)
-miceOutput <- complete(miceMod)
-```
-
-<br/>
-
-Comprobamos, si hay algunos NA en conjunto de datos.
-
-```{r datos imp rf na, echo=FALSE, warning=FALSE}
-anyNA(miceOutput) # False
-```
-
-Pues en output no tenemos datos faltantes.
-Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales.
-Mostramos el gráfico *densityplot*.
-
-```{r datos imp rf graph, echo=FALSE, warning=FALSE}
-densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
-```
-
-<br/>
-
-Resultatos para *cart* (classification and regression trees).
-
-```{r datos imp cart, echo=FALSE, warning=FALSE}
-miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
-miceOutput_cart <- complete(miceMod_cart)
-```
-
-<br/>
-
-Comprobamos, si hay algunos NA en conjunto de datos.
-
-```{r datos imp cart na, echo=FALSE, warning=FALSE}
-anyNA(miceOutput_cart) # False
-```
-
-Pues en output no tenemos datos faltantes.
-Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales.
-Mostramos el gráfico *densityplot*.
-
-```{r datos imp cart graph, echo=FALSE, warning=FALSE}
-densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
-```
-
-<br/>
-
-Podemos apreciar que los datos imputados son muy cercanos a lo datos observados, pero el mejor resultado para las variables lo da el methodo *cart*.
-Usamos este methodo para imputación de valores faltantes (NA) en nuestras variables.
-
-```{r datos imputacion, echo=FALSE, warning=FALSE}
-data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
-
-data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
-
-data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"]
-
-data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"]
-```
-
-<br/>
-
-Veamos, si hemos han imputado todos datos faltantes en nuestro conjunto de datos *data_train*.
-
-```{r datos cart na, echo=FALSE, warning=FALSE}
-colSums(is.na(data_train_del_na)) # False
-```
-
-En resultado ya tenemos *data_train* sin datos faltantes y podemos mas eficaz trabajar con el.
-<br/> <br/>
 
 ## Transformación de variables y eliminación de outliers
 
@@ -924,77 +984,7 @@ ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + 
 
 <br/>
 
-**Eliminamos los valores de la variable 'price' que estén por debajo de 0.**
 
-```{r subset, warning=FALSE}
-data <- subset(data, price > 0)
-```
-
-Como resultado, el conjunto de datos ha disminuido en 8 observaciones.
-
-<br/>
-
-**Veamos el número total de valores perdidos para las variables.**
-
-```{r datos faltantes total, echo=FALSE, warning=FALSE}
-colSums(is.na(data))
-aggr(data, numbers=TRUE, sortVars=TRUE)
-```
-
-<br/>
-
-```{r matrixplot, echo=FALSE, warning=FALSE}
-matrixplot(data)
-```
-
-<br/>
-
-En nuestro caso, además de interesarnos la fecha de registro de la propiedad en airbnb por el propietario (variable host_since) y la fecha de la última review, también nos interesa directamente la experiencia del propietario y cuánto tiempo ha pasado desde la ultima revision de la propiedad.
-
-Cuanta más experiencia tiene un vendedor, más confianza genera en los consumidores.
-Como consecuencia se genera más demanda, lo que tiene un efecto positivo en el precio.
-Las reseñas con fechas antiguas generan dudas en el consumidor, y no reflejan información actual.
-En consecuencia, la demanda cae, lo que afecta negativamente al precio.
-
-Por lo tanto, en lugar de usar la variable host_since, calcularemos la variable de la cantidad de experiencia que tiene el propietario, *host_exp_days* (el número de días) y reemplazaremos la variable de la fecha de la última review por la variable del número de días desde la última review *last_review_days*.
-
-```{r transform, warning=FALSE}
-data$host_exp_days <- as.integer(max(data$host_since, na.rm = TRUE)-data$host_since)
-data$last_review_days <- as.integer(max(data$last_review, na.rm = TRUE)-data$last_review)
-
-data$host_since <- NULL
-data$last_review <- NULL
-```
-
-<br/>
-
-También nos interesa el número de alojamientos que tiene cada propietario.
-Utilizaremos el numéro de casos de la variable host_id para calcular y añadir la variable *host_listings_count*.
-
-```{r transform listings count, warning=FALSE}
-data <- data %>%
-  add_count(host_id)
-colnames(data)[colnames(data) == 'n'] <- 'host_listings_count'
-```
-
-<br/>
-
-Además del precio total del alquiler del alojamiento, nos interesa calcular el precio del alquiler por persona *price_per_person*.
-
-```{r transform price/person, warning=FALSE}
-data$price_per_person <- data$price/data$accommodates
-```
-
-<br/>
-
-El número de ID únicos de los objetos de ubicación es igual al número de observaciones, por lo que no tiene sentido seguir utilizando esta variable para el análisis.
-Pero esta variable sirve para obtener el número de listing que tiene un host.
-
-```{r id null, warning=FALSE}
-data$id <- NULL
-```
-
-<br/>
 
 #### Eliminación de outliers
 
