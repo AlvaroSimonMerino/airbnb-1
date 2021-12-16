@@ -80,11 +80,10 @@ Dicho objetivo, a su vez se dividirá en los siguientes pasos:
 1.  Selección preliminar de variables.
 2.  Separación del conjunto de datos en dos grupos: Training (70% de los datos) y Test (30% de los datos)
 3.  Realización de un análisis exploratorio univariante de los datos.
-4.  Control de calidad del dato.
-5.  Estudio e Imputación de datos faltantes.
-6.  Realización de un análisis exploratorio multivariante de los datos.
-7.  Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
-8.  Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
+4.  Estudio e imputación de datos faltantes.
+5.  Realización de un análisis exploratorio multivariante de los datos.
+6.  Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
+7.  Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
 
 <br/> <br/>
 
@@ -107,9 +106,6 @@ Basándonos en un conocimiento preliminar proporcionado por la plataforma sobre 
 ```{r datos, message=FALSE, warning=FALSE, paged.print=TRUE}
 data <- RawData %>%
    select(id, host_id, host_since, host_is_superhost, description, neighbourhood_group_cleansed, latitude, longitude, property_type, room_type, accommodates, bedrooms, beds, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
-```
-
-```{r variablesOfInterest, echo=FALSE, message=FALSE, warning=FALSE}
 
 # Corrección de tipos
 
@@ -127,6 +123,12 @@ data$price<-parse_number(data$price)
 
 data$description <- as.character(data$description)
 data$description[which(data$description == "")] <- NA
+
+
+# Eliminación de observaciones inverosímiles
+
+data <- data[data$price>0 & data$accommodates>0,]
+
 
 # Selección de variables de interés
    
@@ -192,7 +194,7 @@ tbl <- tableGrob(quantile_price)
 grid.arrange(price, log_price,boxplot_price,tbl, ncol=2, nrow =2, as.table=TRUE)
 ```
 
-El precio medio por noche es de `r round(mean(data$price),2)` €. El precio mínimo es `r min(data$price)`€, y se considera que las `r count(data[data$price<=0,])` observaciones con este precio deberán ser eliminadas. El precio máximo es de `r max(data$price)`€. Se ha comprobado accediendo a la plataforma que valores tan altos no tienen por qué ser erróneos. Sin embargo, se observa que la distribución posee una cola muy larga en su lado derecho, lo cual puede dar problemas a la hora de realizar la regresión.
+El precio medio por noche es de `r round(mean(data$price),2)` €. El precio mínimo es `r min(data$price)`€, y el precio máximo es de `r max(data$price)`€. Se ha comprobado accediendo a la plataforma que valores tan altos no tienen por qué ser erróneos. Sin embargo, se observa que la distribución posee una cola muy larga en su lado derecho, lo cual puede dar problemas a la hora de realizar la regresión.
 
 <br/>
 
@@ -241,7 +243,7 @@ data_train %>%
 #centro_district <- cuentaDistritos %>% slice(c(1))
 ```
 
-Se comprueba que la densidad de observaciones en el distrito Centro de Madrid es sumamente desproporcionada en comparación con el resto.
+Se comprueba que la densidad de observaciones en el distrito Centro de Madrid es sumamente desproporcionada en comparación con el resto. Solo en este distrito se acumulan un `r round(count(data_train[data_train$neighbourhood_group_cleansed=="Centro",])*100/nrow(data_train),2)`% de los espacios alquilables de Madrid (casi la mitad).
 
 <br/>
 
@@ -313,10 +315,11 @@ grid.arrange(bedrooms, beds, ncol=2, nrow =1)
 Tras el análisis de las variables, agrupadas por similitud, concluímos que:
 
 -   Aproximadamente un tercio de las propiedades son para 2 personas, y la gran mayoría son para 6 o menos.
--   Existen `r count(data_train[data_train$accommodates==0,])` propiedades para 0 personas, cuyos precios son 0. Estas propiedades serán eliminadas del conjunto de datos.
 -   Dos tercios de las propiedades tienen 1 dormitorio. La mayoría tiene 5 o menos.
 -   La mayoría de las propiedades tienen entre 1 y 4 camas.
--   Existen `r count(data_train[data_train$beds==0,])` propiedades sin cama, lo cual no es posible si no existen propiedades sin dormitorios. Estas propiedades serán eliminadas del conjunto de datos.
+-   Existen `r count(data_train[data_train$beds==0,])` propiedades sin cama a pesar de que no existen propiedades sin dormitorios.
+
+Puesto que el número de personas por espacio ($accommodates$) nos parece la que mejor representa la ocupación, se descartarán las variables $bedrooms$ y $beds$.
 
 
 
@@ -493,15 +496,14 @@ ggplot(na.omit(data_train), aes(x=host_is_superhost, fill =host_is_superhost, al
 
 <br/> <br/>
 
-## Control de calidad del dato
 
-``` {r calidad}
+## Estudio e imputación de datos faltantes.
+
+``` {r impotacion}
 
 knit_exit()
 
 ```
-
-## Imputación de datos
 
 ## Análisis exploratorio multivariante
 
