@@ -69,7 +69,7 @@ library(ggExtra)
 
 ## Definición de objetivos
 
-Para la realización de esta práctica se ha seleccionado el dataset *listings.csv* (Airbnb Madrid, 2021-09-10), un conjunto de datos obtenido de *insideairbnb.com*.
+Para la realización de esta práctica se ha seleccionado el dataset *listings.csv* (Airbnb Madrid, 2021-09-10), un conjunto de datos obtenido de [insideairbnb.com](http://insideairbnb.com/).
 Puede ser descargado a través de este [enlace](http://data.insideairbnb.com/spain/comunidad-de-madrid/madrid/2021-09-10/data/listings.csv.gz).
 
 El objetivo general de esta práctica es proponer un modelo de regresión lineal multivariante para predecir el precio por noche de un espacio ofertado en la plataforma *AirBnb* y situado en Madrid.
@@ -176,7 +176,7 @@ A partir de ahora, y hasta que se ponga a prueba el modelo, se utilizarán exclu
 
 La variable $price$, la cual queremos predecir, en general se concentra entre los 37 y los 105€, y en general el número de Airbnbs decrece con el precio:
 
-```{r precios, message=FALSE, warning=FALSE}
+```{r precios, message=FALSE, warning=FALSE, fig.align="center"}
 price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10, fill='cadetblue4') + geom_density(alpha = .1, fill="white")
 
 log_price <- ggplot(data_train, aes(x=price, y=..density..)) + geom_histogram(binwidth = 10, color='white', fill='cadetblue4') + geom_density(alpha = .1, color="#FFA500", fill="white") + xlim(c(0,500)) + ggtitle('Transformación logarítmica')
@@ -202,7 +202,7 @@ Los datos de latitud y longitud nos permiten conocer la localización de cada es
 
 <br/>
 
-```{r mapa, fig.height=7, fig.width=6.5, message=FALSE, warning=FALSE}
+```{r mapa, fig.height=7, fig.width=6.5, fig.align="center", message=FALSE, warning=FALSE}
 spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
 spdf_fortified <- tidy(spdf)
 spdf_df <- as.data.frame(spdf)
@@ -229,12 +229,7 @@ Se aprecia una clara concentración de observaciones en los distritos centrales 
 El estudio de esta variable es clave para cuantificar la densidad de airbnbs por distrito vista en el mapa del apartado anterior:
 
 
-```{r distritos, message=FALSE, warning=FALSE}
-cuentaDistritos <- data_train %>%
-  group_by(neighbourhood_group_cleansed) %>%
-  summarise(count = n()) %>%
-  arrange(-count)
-
+```{r distritos, message=FALSE, warning=FALSE, fig.align="center"}
 data_train %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarise(count=n()) %>%
@@ -252,15 +247,14 @@ Se comprueba que la densidad de observaciones en el distrito Centro de Madrid es
 
 #### **Variables: room type, accomodates, bedrooms y beds**
 
-```{r rooms & beds, message=FALSE, warning=FALSE}
-# Creamos una función para el GGPLOT
-#ggplot_hist <- function(d, x){
-#  ggplot(d, aes(x)) + geom_histogram(stat='count')
-#}
 
-# Tipos de rooms
-room_type <- ggplot(data_train, aes(x=room_type, fill =room_type, alpha = room_type)) + geom_histogram(stat='count', col= 'black', fill='#00868B') +
-  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
+``` {r roomsAccsBeds, message=FALSE, warning=FALSE, fig.align="center"}
+
+data_train %>%
+  group_by(room_type) %>%
+  summarise(count=n()) %>%
+  ggplot(aes(x=reorder(room_type,(-count)), y=count, alpha = room_type)) + geom_bar(stat='identity', col= 'black', fill='#00868B') +
+  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none") + xlab('room_type')
 
 cuentaTipos <- data_train %>%
   group_by(room_type) %>%
@@ -277,7 +271,7 @@ mytheme <- gridExtra::ttheme_default(
 tbl_types <- gridExtra::tableGrob(cuentaTipos, theme = mytheme)
 
 # Accomodates
-accomodates <- ggplot(data_train, aes(x=accommodates)) + geom_histogram(stat='count', col= 'black', fill="palegreen4") +
+ggplot(data_train, aes(x=accommodates)) + geom_histogram(stat='count', col= 'black', fill="palegreen4") +
   theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
 
 cuentaAccommodates <- data_train %>%
@@ -289,7 +283,7 @@ tbl_accom <- gridExtra::tableGrob(cuentaAccommodates, theme = mytheme)
 
 # Bedrooms
 bedrooms <- ggplot(data_train, aes(x=bedrooms)) + geom_histogram(stat='count', col= 'black', fill="orange3") +
-  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
+  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none") + ylim(c(0,9000))
 
 cuentaBedrooms <- data_train %>%
   group_by(bedrooms) %>%
@@ -300,7 +294,7 @@ tbl_bedroom <- gridExtra::tableGrob(cuentaBedrooms, theme = mytheme)
 
 # Beds
 beds <- ggplot(data_train, aes(x=beds, fill =beds, alpha = beds)) + geom_histogram(stat='count', col= 'black', fill ='#8B0000') +
-  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
+  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")  + ylim(c(0,9000))
 
 cuentaBeds <- data_train %>%
   group_by(beds) %>%
@@ -310,26 +304,28 @@ cuentaBeds <- data_train %>%
 tbl_bed <- gridExtra::tableGrob(cuentaBeds, theme = mytheme)
 
 # Agrupación de tablas
-grid.arrange(beds, accomodates, bedrooms, room_type, ncol=2, nrow =2)
-grid.arrange(tbl_bed, tbl_accom, tbl_bedroom, tbl_types, ncol=4, nrow =1, as.table=TRUE)
+grid.arrange(bedrooms, beds, ncol=2, nrow =1)
+#grid.arrange(tbl_types, tbl_accom, tbl_bed, tbl_bedroom, ncol=4, nrow =1, as.table=TRUE)
 
-knit_exit()
+
 ```
 
 Tras el análisis de las variables, agrupadas por similitud, concluímos que:
 
 -   Aproximadamente un tercio de las propiedades son para 2 personas, y la gran mayoría son para 6 o menos.
--   Dos tercios de las propiedades tienen 1 dormitorio, y el resto menos. Hay 1434 datos faltantes.
+-   Existen `r count(data_train[data_train$accommodates==0,])` propiedades para 0 personas, cuyos precios son 0. Estas propiedades serán eliminadas del conjunto de datos.
+-   Dos tercios de las propiedades tienen 1 dormitorio. La mayoría tiene 5 o menos.
 -   La mayoría de las propiedades tienen entre 1 y 4 camas.
+-   Existen `r count(data_train[data_train$beds==0,])` propiedades sin cama, lo cual no es posible si no existen propiedades sin dormitorios. Estas propiedades serán eliminadas del conjunto de datos.
 
-A priori, se aprecia cierta relación entre algunos de los gráficos.
-Trataremos de profundizar en ello en el Análisis Multivariante.
+
 
 <br/>
 
 #### **Variables min, máx nights, availability 360**
 
 ```{r Nights, message=FALSE, warning=FALSE}
+knit_exit()
 # Min nights
 min_nights <- ggplot(data_train, aes(x=minimum_nights)) + geom_histogram(bindwidth = 5, fill="violetred3", col='white')  + scale_y_continuous(trans='log10') + scale_x_continuous(limits = c(0, 400)) + theme(legend.position = "none")
 
@@ -475,6 +471,8 @@ grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 ```
 
 <br/> <br/>
+
+## Eliminación de valores
 
 ## Análisis exploratorio multivariante
 
