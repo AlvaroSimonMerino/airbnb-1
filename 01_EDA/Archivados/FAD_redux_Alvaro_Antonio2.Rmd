@@ -183,13 +183,17 @@ tbl <- tableGrob(quantile_price)
 grid.arrange(price, log_price,boxplot_price,tbl, ncol=2, nrow =2, as.table=TRUE)
 ```
 
-El precio medio por noche es de `r round(mean(data$price),2)` €. El precio mínimo es `r min(data$price)`€, y el precio máximo es de `r max(data$price)`€. Se ha comprobado accediendo a la plataforma que valores tan altos no tienen por qué ser erróneos. Sin embargo, se observa que la distribución posee una cola muy larga en su lado derecho, lo cual puede dar problemas a la hora de realizar la regresión.
+El precio medio por noche es de `r round(mean(data$price),2)` €.
+El precio mínimo es `r min(data$price)`€, y el precio máximo es de `r max(data$price)`€.
+Se ha comprobado accediendo a la plataforma que valores tan altos no tienen por qué ser erróneos.
+Sin embargo, se observa que la distribución posee una cola muy larga en su lado derecho, lo cual puede dar problemas a la hora de realizar la regresión.
 
 <br/>
 
 #### **Variables: latitude y longitude**
 
-Los datos de latitud y longitud nos permiten conocer la localización de cada espacio alquilable. A continuación, imprimimos cada airbnb como un punto sobre un plano básico de distritos de Madrid:
+Los datos de latitud y longitud nos permiten conocer la localización de cada espacio alquilable.
+A continuación, imprimimos cada airbnb como un punto sobre un plano básico de distritos de Madrid:
 
 <br/>
 
@@ -216,9 +220,7 @@ Se aprecia una clara concentración de observaciones en los distritos centrales 
 
 #### **Variable: neighbourhood_group_cleansed**
 
-
 El estudio de esta variable es clave para cuantificar la densidad de airbnbs por distrito vista en el mapa del apartado anterior:
-
 
 ```{r distritos, message=FALSE, warning=FALSE, fig.align="center"}
 data_train %>%
@@ -232,14 +234,14 @@ data_train %>%
 #centro_district <- cuentaDistritos %>% slice(c(1))
 ```
 
-Se comprueba que la densidad de observaciones en el distrito Centro de Madrid es sumamente desproporcionada en comparación con el resto. Solo en este distrito se acumulan un `r round(count(data_train[data_train$neighbourhood_group_cleansed=="Centro",])*100/nrow(data_train),2)`% de los espacios alquilables de Madrid (casi la mitad).
+Se comprueba que la densidad de observaciones en el distrito Centro de Madrid es sumamente desproporcionada en comparación con el resto.
+Solo en este distrito se acumulan un `r round(count(data_train[data_train$neighbourhood_group_cleansed=="Centro",])*100/nrow(data_train),2)`% de los espacios alquilables de Madrid (casi la mitad).
 
 <br/>
 
 #### **Variables: room type, accomodates, bedrooms y beds**
 
-
-``` {r roomsAccsBeds, message=FALSE, warning=FALSE, fig.align="center"}
+```{r roomsAccsBeds, message=FALSE, warning=FALSE, fig.align="center"}
 
 data_train %>%
   group_by(room_type) %>%
@@ -353,15 +355,15 @@ grid.arrange(min_nights, min_night_avg, max_night_avg, avail_360, ncol=2, nrow =
 #grid.arrange(tbl_min, tbl_min_avg, tbl_max_avg, ncol=3, nrow =1, as.table=TRUE)
 ```
 
-Se aprecia una gran similaridad entre las variables $minimum\_nights$ y $minimum\_nights\_avg\_ntm$. Proseguiremos nuestro análisis con la segunda por tratarse de la media anual, según la definición del diccionario de la base de datos, y descartaremos la primera.
-
+Se aprecia una gran similaridad entre las variables $minimum\_nights$ y $minimum\_nights\_avg\_ntm$.
+Proseguiremos nuestro análisis con la segunda por tratarse de la media anual, según la definición del diccionario de la base de datos, y descartaremos la primera.
 
 La variable $availability\_365$ muestra que hay alta disponibilidad en los siguientes casos:
 
-
 -   Un `r round(count(data_train[data_train$availability_365==0,])*100/nrow(data_train),1)`% de los espacios están disponibles en los 10 días posteriores a la fecha de recogida de datos.
 
--   A 90 y 180 días desde la fecha de recolección de los datos. Estas fechas se corresponden con la semana posterior al "Puente de la Constitución" y la semana posterior a los carnavales.
+-   A 90 y 180 días desde la fecha de recolección de los datos.
+    Estas fechas se corresponden con la semana posterior al "Puente de la Constitución" y la semana posterior a los carnavales.
 
 -   La mínima disponibilidad se encuentra entre los días 200 y 220, que se corresponden con la Semana Santa.
 
@@ -369,13 +371,12 @@ La variable $availability\_365$ muestra que hay alta disponibilidad en los sigui
 
 -   A los 360 días, que se corresponde con el inicio del mes de Septiembre.
 
-
-Dado que nuestros datos no contienen la evolución temporal de los precios, la variable $availability\_365$ no aporta gran cantidad de información respecto de los mismos. Sin embargo, se podría explorar la influencia de la disponibilidad inmediata, sobre la cual se desconoce si es tan numerosa debido a la inmediatez o a la época del año en que los datos fueron recogidos.
+Dado que nuestros datos no contienen la evolución temporal de los precios, la variable $availability\_365$ no aporta gran cantidad de información respecto de los mismos.
+Sin embargo, se podría explorar la influencia de la disponibilidad inmediata, sobre la cual se desconoce si es tan numerosa debido a la inmediatez o a la época del año en que los datos fueron recogidos.
 
 <br/>
 
 #### **Variables: Grupo review_scores y reviews_per_month**
-
 
 ```{r ratings, message=FALSE, warning=FALSE, fig.align="center"}
 
@@ -403,9 +404,12 @@ rp_month <- ggplot(scores, aes(x = reviews_per_month, y=..count..)) +
 grid.arrange(rs_rating, rs_accuracy, rs_cleanliness, rs_checkin, rs_communication, rs_location, rs_value, rp_month, ncol=4, nrow =2)
 ```
 
-Podemos observar que la mayoría de las reviews son positivas, con la mayor concentración de casos entre el 4 y el 5 generalmente. Todas las variables de puntuación tienen una distribución similar, excepto en el caso de $review\_scores\_value$  y en el de $review\_scores\_rating$ por ser el promedio de todas con la anterior. Debido a esto, consideramos que únicamente se incluirá en el modelo $review\_scores\_rating$.
+Podemos observar que la mayoría de las reviews son positivas, con la mayor concentración de casos entre el 4 y el 5 generalmente.
+Todas las variables de puntuación tienen una distribución similar, excepto en el caso de $review\_scores\_value$ y en el de $review\_scores\_rating$ por ser el promedio de todas con la anterior.
+Debido a esto, consideramos que únicamente se incluirá en el modelo $review\_scores\_rating$.
 
-$reviews\_per\_month$ indica que la mayoría de espacios tienen pocas o ninguna review al mes. La representamos más en detalle:
+$reviews\_per\_month$ indica que la mayoría de espacios tienen pocas o ninguna review al mes.
+La representamos más en detalle:
 
 ```{r per month, message=FALSE, warning=FALSE, fig.align="center"}
 #str(scores$reviews_per_month)
@@ -424,10 +428,8 @@ hist(rpmonth , breaks=40 , col='#8B3A62' , border=F , main="", ylab="count", xla
 
 ```
 
-
-La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por mes de media, con más de 4000 personas con una media de 0.25 reviews por mes. Este resultado tiene sentido, ya que en general las personas suelen estar un par de semanas de vacaciones, y suele haber mayor concetración de turistas en ciertas épocas del año.
-
-
+La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por mes de media, con más de 4000 personas con una media de 0.25 reviews por mes.
+Este resultado tiene sentido, ya que en general las personas suelen estar un par de semanas de vacaciones, y suele haber mayor concetración de turistas en ciertas épocas del año.
 
 ```{r scores, fig.height=5.5, fig.width=11, message=FALSE, warning=FALSE}
 
@@ -446,7 +448,8 @@ La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por
 
 #### **Variables: host_since, last_review**
 
-Se ha incluido la variable $host\_since$ para comprobar si existe una correlación entre la experiencia del arrendatario y el precio del espacio. Su distribución es la siguiente:
+Se ha incluido la variable $host\_since$ para comprobar si existe una correlación entre la experiencia del arrendatario y el precio del espacio.
+Su distribución es la siguiente:
 
 ```{r host_since, message=FALSE, warning=FALSE, fig.align="center"}
 
@@ -455,7 +458,8 @@ ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslat
 
 ```
 
-En nuestro caso, creemos que podríamos sacar más partido a $host\_since$ la convertimos al número de días transcurridos hasta la recolección de los datos $host\_exp\_days$. De esta forma obtendremos directamente la experiencia del propietario en la plataforma y podremos comprobar si la confianza que genera su antigüedad tiene efecto en el precio.
+En nuestro caso, creemos que podríamos sacar más partido a $host\_since$ la convertimos al número de días transcurridos hasta la recolección de los datos $host\_exp\_days$.
+De esta forma obtendremos directamente la experiencia del propietario en la plataforma y podremos comprobar si la confianza que genera su antigüedad tiene efecto en el precio.
 
 ```{r exp_days, warning=FALSE}
 data_train$host_exp_days <- as.integer(max(data_train$host_since, na.rm = TRUE)-data_train$host_since)
@@ -468,7 +472,6 @@ data_train$host_since <- NULL
 ggplot(data_train, aes(x=last_review)) + geom_histogram(binwidth = 7, col='darkslategray') + theme(legend.position = "none")
 
 ```
-
 
 Este gráfico es muy interesante, puesto que se aprecian claramente dos grupos: aquellos espacios que fueron evaluados por última vez antes de la pandemia del Sars-CoV-2 y aquellos que lo fueron después.
 
@@ -494,7 +497,9 @@ rAC_pct <- 100-rBC_pct
 
 ```
 
-Resulta interesante comprobar el descenso abrupto del número de reviews que se produce el 15 de Marzo de 2020, primer día de Estado de Alarma en España. Según los datos, el `r rBC_pct`% de los espacios no han recibido una review hasta el día en que se recolectaron los datos (10 de Septiembre). Podría resultar interesante comparar los precios de los espacios en función de si han sido evaluados antes o después de esta fecha.
+Resulta interesante comprobar el descenso abrupto del número de reviews que se produce el 15 de Marzo de 2020, primer día de Estado de Alarma en España.
+Según los datos, el `r rBC_pct`% de los espacios no han recibido una review hasta el día en que se recolectaron los datos (10 de Septiembre).
+Podría resultar interesante comparar los precios de los espacios en función de si han sido evaluados antes o después de esta fecha.
 
 Por motivos similares al caso de $host\_since$, se transformará la variable en $last\_review\_days$ utilizando el mismo procedimiento.
 
@@ -517,7 +522,8 @@ $host\_is\_superhost$ es un indicador de excelencia otorgado por la plataforma a
 
 <br/>
 
-Creemos que esta variable también podría influir en el precio de los espacios. La proporción de *superhosts* es la siguiente:
+Creemos que esta variable también podría influir en el precio de los espacios.
+La proporción de *superhosts* es la siguiente:
 
 ```{r his, message=FALSE, warning=FALSE, fig.align="center"}
 
@@ -527,10 +533,10 @@ ggplot(na.omit(data_train), aes(x=host_is_superhost, fill =host_is_superhost, al
 
 ```
 
-
 #### Creación de variables nuevas
 
-También nos interesa combinar varias variables para crear otras nuevas que puedan aportar nuevas perspectivas. Se crearán las siguientes variables:
+También nos interesa combinar varias variables para crear otras nuevas que puedan aportar nuevas perspectivas.
+Se crearán las siguientes variables:
 
 ```{r transforms, warning=FALSE, fig.align="center"}
 data_train <- data_train %>%
@@ -550,8 +556,6 @@ kable(nuevasVariables)%>%kable_styling("striped")
 
 <br/>
 
-
-
 ## Estudio e imputación de valores faltantes
 
 ```{r data_na, warning=FALSE}
@@ -561,7 +565,6 @@ data_train_del_na <- data_train
 ```
 
 Una vez realizada la copia del conjunto de datos de Training sobre la cual trabajaremos, se comprueba cuántos valores faltantes tiene cada variable:
-
 
 ```{r grafico_na, echo=FALSE, fig.height=5, fig.width=7.5, warning=FALSE}
 
@@ -592,10 +595,6 @@ En el caso de *host_is_superhost* y *host_exp_days*, solo tenemos 19 observacion
 
 <br/>
 
-
-
-
-
 ```{r na min, warning=FALSE}
 
 data_train_del_na$host_is_superhost[which(is.na(data_train_del_na$host_is_superhost))] <- FALSE
@@ -603,11 +602,9 @@ data_train_del_na$host_exp_days[which(is.na(data_train_del_na$host_exp_days))] <
 
 ```
 
-
 <br/>
 
 Como el resto de variables tiene una proporción considerable de datos faltantes, se buscará un método para sustituirlos conservando su distribución.
-
 
 He aquí una matriz de correlación de variables con NA:
 
@@ -620,15 +617,11 @@ kable(cor(y)) %>%
   scroll_box(width = "100%")
 ```
 
-
-
-
 ```{r datos faltantes train, echo=FALSE, warning=FALSE}
 
 #colSums(is.na(data_train_del_na))
 #aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE, plot=FALSE))
 ```
-
 
 <br/>
 
@@ -651,8 +644,6 @@ high.corr(data_train_del_na)
 <br/>
 
 <br/>
-
-
 
 #### Imputación por regresión
 
@@ -769,16 +760,13 @@ colSums(is.na(data_train_del_na)) # False
 En resultado ya tenemos *data_train* sin datos faltantes y podemos mas eficaz trabajar con el.
 <br/> <br/>
 
-
 ```{r exit}
 knit_exit()
 ```
 
-
-
 ## Análisis exploratorio multivariante
 
-En esta parte se analizará la relación de la variable objetivo $price$ con  el resto de variables seleccionadas.
+En esta parte se analizará la relación de la variable objetivo $price$ con el resto de variables seleccionadas.
 
 #### neighbourhood_group_cleansed
 
@@ -789,8 +777,6 @@ ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, mean(neighbourhoo
 
 
 ```
-
-
 
 ```{r priceVSroomtype, warning=FALSE, message=FALSE}
 
@@ -913,6 +899,7 @@ heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(ma
 <br/> <br/>
 
 #### host_since y superhosts
+
 ```{r host, message=FALSE, warning=FALSE}
 
 
@@ -928,8 +915,6 @@ rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fi
   geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
 grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 ```
-
-
 
 ## Transformación de variables y eliminación de outliers
 
@@ -989,8 +974,6 @@ ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + 
 ```
 
 <br/>
-
-
 
 #### Eliminación de outliers
 
