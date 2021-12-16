@@ -1,5 +1,5 @@
 ---
-title: ""
+title: "Modelo para predecir el precio de los AirBnb en Madrid"
 author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
 date: "15/12/2021"
 output:
@@ -80,8 +80,8 @@ Dicho objetivo, a su vez se dividirá en los siguientes pasos:
 1.  Selección preliminar de variables.
 2.  Separación del conjunto de datos en dos grupos: Training (70% de los datos) y Test (30% de los datos)
 3.  Realización de un análisis exploratorio univariante de los datos.
-4.  Realización de un análisis exploratorio multivariante de los datos.
-5.  Imputación de datos faltantes.
+4.  Imputación de datos faltantes.
+5.  Realización de un análisis exploratorio multivariante de los datos.
 6.  Control de calidad del dato.
 7.  Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
 8.  Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
@@ -460,7 +460,7 @@ La mayoria de los espacios en la base de datos, obtienen entre 0 y 2 reviews por
 
 ```{r host, message=FALSE, warning=FALSE}
 
-knit_exit()
+
 # Host exp days
 host_since <- ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
 
@@ -483,6 +483,8 @@ grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
 #### Variable price vs variables de interés
 
 ```{r priceVSroomtype, warning=FALSE, message=FALSE}
+
+knit_exit()
 # Price vs room type
 price_rtyp <- ggplot(data_train, aes(x=room_type, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
 
