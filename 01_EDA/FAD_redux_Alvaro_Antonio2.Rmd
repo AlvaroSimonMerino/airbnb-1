@@ -196,10 +196,37 @@ El precio medio por noche es de `r round(mean(data$price),2)` €. El precio mí
 
 <br/>
 
+#### **Variables: latitude y longitude**
+
+Los datos de latitud y longitud nos permiten conocer la localización de cada espacio alquilable. A continuación, imprimimos cada airbnb como un punto sobre un plano básico de distritos de Madrid:
+
+<br/>
+
+```{r mapa, fig.height=7, fig.width=6.5, message=FALSE, warning=FALSE}
+spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
+spdf_fortified <- tidy(spdf)
+spdf_df <- as.data.frame(spdf)
+sorted_spdf_df <- spdf_df %>% arrange(name)
+
+#Añadimos datos de población al geojson file
+sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+
+# Gráfico de airbnbs localizadas por latitud y longitud
+adjusted_price <- subset(data_train, price >0 & price < 150)
+price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point(alpha = 0.05, colour="blue") + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
+price_map
+
+
+```
+
+Se aprecia una clara concentración de observaciones en los distritos centrales de Madrid.
+
+<br/>
+
 #### **Variable: neighbourhood_group_cleansed**
 
 
-El estudio de esta variable es clave para entender la densidad de airbnbs por distrito:
+El estudio de esta variable es clave para cuantificar la densidad de airbnbs por distrito vista en el mapa del apartado anterior:
 
 
 ```{r distritos, message=FALSE, warning=FALSE}
@@ -223,7 +250,7 @@ Se comprueba que la densidad de observaciones en el distrito Centro de Madrid es
 
 <br/>
 
-#### **Variables : room type, accomodates, bedrooms y beds**
+#### **Variables: room type, accomodates, bedrooms y beds**
 
 ```{r rooms & beds, message=FALSE, warning=FALSE}
 # Creamos una función para el GGPLOT
@@ -528,31 +555,6 @@ grid.arrange(price_rtyp, price_acc, price_bedr, price_bds, nrow =2, ncol=2)
 grid.arrange(price_hs, price_hisph, price_rvpm, price_rscr, nrow =2, ncol=2)
 grid.arrange(price_nmin, price_minavgn, price_maxavgn, price_ava360, nrow =2, ncol=2)
 ```
-
- A continuación, imprimimos cada airbnb como un punto sobre un plano básico de distritos de Madrid, usando un rango de color para la variable precio, para entender a nivel visual esta concentración, y ver si la localización afecta de algún modo a la variable objetivo.
-
-<br/>
-
-```{r mapa, fig.height=7, fig.width=6.5, message=FALSE, warning=FALSE}
-spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
-spdf_fortified <- tidy(spdf)
-spdf_df <- as.data.frame(spdf)
-sorted_spdf_df <- spdf_df %>% arrange(name)
-
-#Añadimos datos de población al geojson file
-sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
-
-# Gráfico de airbnbs localizadas por latitud y longitud
-adjusted_price <- subset(data_train, price >0 & price < 150)
-price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
-price_map
-
-
-```
-
-En este gráfico vemos una clara concentración de puntos en los distritos del centro de Madrid.
-También se puede apreciar que puede haber cierta relación entre la localización y el precio, ya que aunque hay fluctuación de intensidad de color generalizada, parece haber una ligera concentración de puntos claros más elevada en los distritos de la zona central.
-Trataremos de analizar con profundidad esta relación en el apartado de Análisis Multivariante.
 
 <br/>
 
