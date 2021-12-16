@@ -128,7 +128,7 @@ voi <- data.frame("Variable" = c("host_id", "host_since", "host_is_superhost", "
 voi$Tipo <- sapply(data[,voi$Variable],class)
 voi <- voi[,c(1,3,2)]
 
-kable(voi)
+kable(voi) %>% kable_styling("striped")
 ```
 
 Aunque se intuye antes de comenzar que hay variables que van a aportar poca información o son similares a otras o combinaciones de varias, de momento se conservarán cara a realizar un análisis previo para justificar su inclusión o exclusión de nuestro estudio.
@@ -150,7 +150,7 @@ data_test <- slice(data, -inTraining)
 
 groups <- data.frame("Grupos" = c("Training","Test"), "Observaciones" = c(nrow(data_train),nrow(data_test)), "Porcentaje" = c(round(nrow(data_train)*100/nrow(data),1),round(nrow(data_test)*100/nrow(data),1)))
 
-kable(groups)
+kable(groups) %>% kable_styling("striped")
 ```
 
 <br/>
@@ -544,7 +544,7 @@ nuevasVariables <- data.frame("Variable" = c('host_listings_count', 'price_per_p
 nuevasVariables$Tipo <- sapply(data_train[,nuevasVariables$Variable],class)
 nuevasVariables <- nuevasVariables[,c(1,3,2)]
 
-kable (nuevasVariables)
+kable(nuevasVariables)%>%kable_styling("striped")
 
 ```
 
@@ -654,7 +654,7 @@ high.corr(data_train_del_na)
 
 
 
-#### Imputacion por regresion
+#### Imputación por regresión
 
 <br/>
 
@@ -685,7 +685,7 @@ Probamos otros methodos.
 
 <br/>
 
-#### Imputacion con paquete mice
+#### Imputación con paquete mice
 
 <br/>
 
