@@ -66,6 +66,7 @@ library(GGally)
 library(RColorBrewer)
 library(ggExtra)
 library(DMwR) # install.packages(c("zoo","xts","quantmod")), luego instala ROCR, luego install.packages( "Path/To/DMwR_0.4.1.tar.gz", repos=NULL, type="source" )
+library(geosphere)
 ```
 
 <br/> <br/>
@@ -563,10 +564,21 @@ colnames(data_train)[colnames(data_train) == 'n'] <- 'host_listings_count'
 
 data_train$price_per_person <- data_train$price/data_train$accommodates
 
-nuevasVariables <- data.frame("Variable" = c('host_listings_count', 'price_per_person'), "Definición" = c("Número de espacios que alquila el dueño","Precio del espacio dividido por el número de plazas ofertadas"))
+distance <- function(origen, row){
+  return(as.numeric(distm(origen, cbind(row$longitude, row$latitude),
+                          fun = distHaversine))
+  )
+}
+
+sol <- c(-3.7035799616333795, 40.417114256598694)
+
+data_train$dist_sol <- distance(sol, data_train)
+
+nuevasVariables <- data.frame("Variable" = c('host_listings_count', 'price_per_person', 'dist_sol'), "Definición" = c("Número de espacios que alquila el dueño","Precio del espacio dividido por el número de plazas ofertadas", "Distancia al centro (Puerta del Sol)"))
 
 nuevasVariables$Tipo <- sapply(data_train[,nuevasVariables$Variable],class)
 nuevasVariables <- nuevasVariables[,c(1,3,2)]
+
 
 kable(nuevasVariables)%>%kable_styling("striped")
 
@@ -789,13 +801,104 @@ En esta parte se analizará la relación de la variable objetivo $price$ con el 
 
 #### Análisis del precio en función de la localización
 
-```{r mapa precio, fig.align="center", message=FALSE, warning=FALSE}
+```{r precioGeneral, fig.align="center", message=FALSE, warning=FALSE}
 # Gráfico de airbnbs localizadas por latitud y longitud, color por precio
 adjusted_price <- subset(data_train, price >0 & price < 150)
 price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
 price_map
 ```
 En este gráfico se puede apreciar cómo la mayoría de espacios de precio superior se encuentran en el distrito Centro, siendo también notoria su presencia en el Bario de Salamanca y en torno al Paseo de la Castellana.
+
+
+
+#### Análisis del precio en función del número de plazas
+
+```{r plazas}
+# price vs accommodates
+pricevsAcco <- data_train %>%
+  group_by(accommodates) %>%
+  summarise(precio = mean(price))
+
+ggplot(pricevsAcco, aes(x=accommodates, y=precio)) + geom_col(binwidth = 10, color='white', fill='#CD6839') # CHECK: Fairly obvious
+
+# price vs bedrooms
+pricevsBR <- data_train %>%
+  group_by(bedrooms) %>%
+  summarise(precio = mean(price))
+
+price_bedr <- ggplot(pricevsBR, aes(x=bedrooms, y=precio)) + geom_col(binwidth = 10, color='white', fill='#8B2252') # CHECK: accommodates are better
+
+# price vs beds
+pricevsBeds <- data_train %>%
+  group_by(beds) %>%
+  summarise(precio = mean(price))
+
+price_bds <- ggplot(pricevsBeds, aes(x=beds, y=precio)) + geom_col(binwidth = 10, color='white', fill='#698B22') # CHECK: Fairly obvious. Accommodates can be better.
+
+
+grid.arrange(price_bedr, price_bds, nrow =1, ncol=2)
+```
+
+Se comprueba que el precio sube de manera lineal aproximadamente hasta los espacios de 6 plazas. Con los dormitorios y las camas sucede algo similar, pero $accommodates$ nos parece mejor indicativo del precio puesto que desconocemos para cuántas personas son las camas ni cuántas camas tiene cada dormitorio.
+
+Analicemos la distribución de precios por persona:
+
+```{r histPP}
+# price vs accommodates
+price <- ggplot(data_train, aes(x=price_per_person, y=..density..)) + geom_histogram(binwidth = 10, fill='cadetblue4') + geom_density(alpha = .1, fill="white")
+
+log_price <- ggplot(data_train, aes(x=price_per_person, y=..density..)) + geom_histogram(binwidth = 10, color='white', fill='cadetblue4') + geom_density(alpha = .1, color="#FFA500", fill="white") + xlim(c(0,150)) + ggtitle('Transformación logarítmica')
+
+boxplot_price <- ggplot(data_train, aes(y=price_per_person)) + geom_boxplot(color="#FFA500", fill='cadetblue4') + scale_y_continuous(trans='log10')
+
+quantile_price <- data.frame(quantile(data_train$price_per_person))
+
+colnames(quantile_price) <- c("Observaciones")
+
+tbl <- tableGrob(quantile_price)
+
+grid.arrange(price, log_price,boxplot_price,tbl, ncol=2, nrow =2, as.table=TRUE)
+```
+
+
+
+En el gráfico podemos ver que la mayoría de pisos se encuentran bajo los 150€ por persona. Para un cuantil de 0.955 tenemos que el precio es de `r round(quantile(data_train$price_per_person, 0.955), 2)`€. El número de observaciones por encima de este valor es `r count(data_train[data_train$price_per_person>quantile(data_train$price_per_person, 0.955),])`, un `r round(count(data_train[data_train$price_per_person>quantile(data_train$price_per_person, 0.955),])*100/nrow(data_train),2)`% de los datos.
+
+
+Procedemos a eliminar estas observaciones y a recalcular los cuantiles:
+
+
+
+```{r cuantilPP}
+
+data_train <- data_train[data_train$price_per_person<quantile(data_train$price_per_person, 0.955),]
+
+boxplot_price <- ggplot(data_train, aes(y=price_per_person)) + geom_boxplot(color="#FFA500", fill='cadetblue4') + scale_y_continuous(trans='log10')
+
+quantile_price <- data.frame(quantile(data_train$price_per_person))
+
+colnames(quantile_price) <- c("Observaciones")
+
+tbl <- tableGrob(quantile_price)
+
+grid.arrange(boxplot_price,tbl, ncol=2, nrow =1, as.table=TRUE)
+
+```
+
+
+
+#### Análisis del precio en función de la distancia al centro
+
+```{r mapa precio, fig.align="center", message=FALSE, warning=FALSE}
+
+plot_dist <- ggplot(data_train,aes(x=dist_sol,y=price)) + geom_point() + geom_smooth(method='lm')
+plot_distPP <- ggplot(data_train,aes(x=dist_sol,y=price_per_person)) + geom_point() + geom_smooth(method='lm')
+
+grid.arrange(plot_dist,plot_distPP, ncol=2, nrow =1, as.table=TRUE)
+```
+
+
+Se comprueba que el precio disminuye según aumenta la distancia al centro de la ciudad.
 
 
 #### Análisis del precio en función del distrito
@@ -936,6 +1039,8 @@ pricePP_rtyp <- ggplot(data_train, aes(x=room_type, y=price_per_person)) + geom_
 pricePP_rtyp
 ```
 
+
+
 Si miramos el precio por persona, la relación se mantiene pero en mucha menor medida. Solo destaca el hotel frente al resto.
 
 
@@ -945,33 +1050,13 @@ A continuación, vamos a comparar la variable precio con una serie de variables 
 
 ```{r priceVS, fig.align="center", message=FALSE, warning=FALSE}
 
-
+knit_exit()
 # price vs host_since
 price_hs <- ggplot(data_train, aes(x=host_exp_days, y=price)) + geom_col(binwidth = 10, fill='#8B1C62') + scale_y_continuous(trans='log') # CHECK: Irrelevant TODO: agregar por promedio 
 
 # price vs host_is_superhost
 price_hisph <- ggplot(data_train, aes(x=host_is_superhost, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#FFA500') + scale_y_continuous(trans='log10') #CHECK: bit of an edge #FFA500
 
-# price vs accommodates
-pricevsAcco <- data_train %>%
-  group_by(accommodates) %>%
-  summarise(precio = mean(price))
-
-price_acc <- ggplot(pricevsAcco, aes(x=accommodates, y=precio)) + geom_col(binwidth = 10, color='white', fill='#CD6839') # CHECK: Fairly obvious
-
-# price vs bedrooms
-pricevsBR <- data_train %>%
-  group_by(bedrooms) %>%
-  summarise(precio = mean(price))
-
-price_bedr <- ggplot(pricevsBR, aes(x=bedrooms, y=precio)) + geom_col(binwidth = 10, color='white', fill='#8B2252') # CHECK: accommodates are better
-
-# price vs beds
-pricevsBeds <- data_train %>%
-  group_by(beds) %>%
-  summarise(precio = mean(price))
-
-price_bds <- ggplot(pricevsBeds, aes(x=beds, y=precio)) + geom_col(binwidth = 10, color='white', fill='#698B22') # CHECK: Fairly obvious. Accommodates can be better.
 
 # price vs minimum_nights
 pricevsminimum_nights <- data_train %>%
