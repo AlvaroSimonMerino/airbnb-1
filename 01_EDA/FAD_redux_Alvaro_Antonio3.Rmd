@@ -497,6 +497,7 @@ Este gráfico es muy interesante, puesto que se aprecian claramente dos grupos: 
 ```{r sarsCov2, message=FALSE, warning=FALSE, fig.align="center"}
 
 state_of_alarm <- as.Date("2020-03-15")
+days_since_soa <- as.integer(max(data_train$last_review, na.rm = TRUE)-state_of_alarm)
 
 # Plots comparativos de enero a octubre
 last_review_2019 <- ggplot(data_train, aes(x=last_review)) + geom_histogram(binwidth = 1, col='darkslategray') + theme(legend.position = "none") + xlim(c(as.Date("2019-01-01"),as.Date("2019-06-01")))
@@ -716,74 +717,74 @@ El error porcentual absoluto medio (MAPE) fue 26,4%, lo cual es un resultado ins
 <br/>
 
 
-<!-- #### Imputación con paquete **mice** -->
+#### Imputación con paquete **mice**
 
-<!-- <br/> -->
+<br/>
 
-<!-- Utilizaremos los métodos *rf* (Random Forest) y *cart* (Classification and Regression Trees) del paquete *mice* para imputar los NA. Esta elección viene dada porque los métodos de imputación predeterminados de *mice* implican regresión lineal. Debido a que existe una alta probabilidad de que una columna sea una combinación lineal de otra, optamos por los métodos antes mencionados. -->
+Utilizaremos los métodos *rf* (Random Forest) y *cart* (Classification and Regression Trees) del paquete *mice* para imputar los NA. Esta elección viene dada porque los métodos de imputación predeterminados de *mice* implican regresión lineal. Debido a que existe una alta probabilidad de que una columna sea una combinación lineal de otra, optamos por los métodos antes mencionados.
 
-<!-- ##### Random Forest: -->
+##### Random Forest:
 
-<!-- ```{r datos imp rf, echo=FALSE, message=FALSE, warning=FALSE} -->
+```{r datos imp rf, echo=FALSE, message=FALSE, warning=FALSE}
 
-<!-- miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123) -->
-<!-- miceOutput <- complete(miceMod) -->
+miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)
+miceOutput <- complete(miceMod)
 
-<!-- ``` -->
+```
 
-<!-- <br/> -->
+<br/>
 
-<!-- Comparación de las distribuciones de los datos reemplazados con los originales: -->
+Comparación de las distribuciones de los datos reemplazados con los originales:
 
-<!-- ```{r datos imp rf graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"} -->
-<!-- densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4)) -->
-<!-- ``` -->
+```{r datos imp rf graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
+densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+```
 
-<!-- <br/> -->
+<br/>
 
-<!-- ##### Classification and Regression Trees: -->
+##### Classification and Regression Trees:
 
-<!-- ```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE} -->
-<!-- miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123) -->
-<!-- miceOutput_cart <- complete(miceMod_cart) -->
+```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE}
+miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
+miceOutput_cart <- complete(miceMod_cart)
 
-<!-- ``` -->
+```
 
-<!-- <br/> -->
-
-
+<br/>
 
 
-<!-- Comparación de las distribuciones de los datos reemplazados con los originales: -->
 
-<!-- ```{r datos imp cart graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"} -->
-<!-- densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4)) -->
-<!-- ``` -->
 
-<!-- <br/> -->
+Comparación de las distribuciones de los datos reemplazados con los originales:
 
-<!-- Podemos apreciar que los datos imputados son muy cercanos a los datos observados, pero el resultado que más se ajusta es por el método *cart*. Usamos este método para imputar los NA de $data\_train$. -->
+```{r datos imp cart graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
+densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
+```
 
-<!-- ```{r datos imputacion, echo=FALSE, message=FALSE, warning=FALSE} -->
-<!-- data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"] -->
+<br/>
 
-<!-- data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"] -->
+Podemos apreciar que los datos imputados son muy cercanos a los datos observados, pero el resultado que más se ajusta es por el método *cart*. Usamos este método para imputar los NA de $data\_train$.
 
-<!-- data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"] -->
+```{r datos imputacion, echo=FALSE, message=FALSE, warning=FALSE}
+data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
 
-<!-- data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"] -->
-<!-- ``` -->
+data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
 
-<!-- <br/> -->
+data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"]
 
-<!-- Vamos a comprobar si tras las imputaciones, hemos conseguido reemplazar todos los NAs de las columnas que nis interesan de *data_train* (*bedrooms*, *review_scores_rating*, *reviews_per_month* y *last_review_days*): -->
+data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"]
+```
 
-<!-- ```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE} -->
-<!-- na_dat <- colSums(is.na(data_train_del_na)) # False -->
-<!-- kable(as.matrix(na_dat[c("bedrooms", "review_scores_rating", "reviews_per_month", "last_review_days")])) %>% -->
-<!--   kable_styling("striped") %>% -->
-<!--   scroll_box(width = "100%", height = TRUE) -->
-<!-- ``` -->
+<br/>
+
+Vamos a comprobar si tras las imputaciones, hemos conseguido reemplazar todos los NAs de las columnas que nis interesan de *data_train* (*bedrooms*, *review_scores_rating*, *reviews_per_month* y *last_review_days*):
+
+```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE}
+na_dat <- colSums(is.na(data_train_del_na)) # False
+kable(as.matrix(na_dat[c("bedrooms", "review_scores_rating", "reviews_per_month", "last_review_days")])) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%", height = TRUE)
+```
 
 
 
@@ -1047,9 +1048,21 @@ Si miramos el precio por persona, la relación se mantiene pero en mucha menor m
 <br/>
 
 
-#### Análisis del precio en función del host
+#### Análisis del precio en función de la experiencia del host
+
+``` {r shcompare}
+#Comparativa ratings con host
+ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
+```
+
+
+Vemos que se cumple la definición de **superhost**, teniendo la mayoría de ellos un rating entre 4.5 y 5.
+
+
 
 A continuación, vamos a comparar la variable precio con una serie de variables de interés, para ver si relación utilizando técnicas de análisis multivariante y distintos tipos de gráficos.
+
+
 
 ```{r priceVS, fig.align="center", message=FALSE, warning=FALSE}
 
@@ -1102,88 +1115,73 @@ Como se mencionó en el análisis univariante, cabe la posibilidad de que haya u
 
 ```{r lastReviewPrice}
 
+data_train <- data_train %>% mutate(precovid = last_review_days<days_since_soa, na.rm=TRUE)
 
+data_train$precovid[which(is.na(data_train$precovid))] <- TRUE # Damos los NA por TRUE, dado que no constan reviews
+
+ggplot(data_train, aes(x=precovid)) + geom_bar(stat='count')
+
+```
+
+```{r precovid}
+
+ggplot(data_train, aes(x=precovid, y = log10(price))) + geom_boxplot()
 
 ```
 
 
+La diferencia de precios en promedio dependiendo de si la propiedad tuvo una review antes o después de la declaración del Estado de Alarma es de `r round(mean(data_train[data_train$precovid==TRUE,"price"]) - mean(data_train[data_train$precovid==FALSE,"price"]),2)`€.
+
+<br/>
+<br/>
+
+
+
 #### Análisis del precio según disponibilidad y estancia mínima promedio
 
-```{r nights}
-
-
-# price vs minimum_nights
-pricevsminimum_nights <- data_train %>%
-  group_by(minimum_nights) %>%
-  summarise(precio = mean(price))
-
-price_nmin <- ggplot(pricevsminimum_nights, aes(x=minimum_nights, y=precio)) + geom_col(binwidth = 5,  fill='#8B3A62') # No value
+```{r nights_}
 
 # price vs minimum_nights_avg_ntm
 pricevsminimum_nights_avg_ntm <- data_train %>%
   group_by(minimum_nights_avg_ntm) %>%
   summarise(precio = mean(price))
 
-price_minavgn <- ggplot(pricevsminimum_nights_avg_ntm, aes(x=minimum_nights_avg_ntm, y=precio)) + geom_col(binwidth = 5, fill='#FFB90F') + scale_y_continuous(trans='log10') #¿?
+price_minavgn <- ggplot(pricevsminimum_nights_avg_ntm, aes(x=log(minimum_nights_avg_ntm), y=precio)) + geom_col(fill='#FFB90F') + scale_y_continuous(trans='log10') #¿?
 
-# price vs maximum_nights_avg_ntm
-pricevsmaximum_nights_avg_ntm <- data_train %>%
-  group_by(maximum_nights_avg_ntm) %>%
-  summarise(precio = mean(price))
-
-price_maxavgn <- ggplot(pricevsmaximum_nights_avg_ntm, aes(x=maximum_nights_avg_ntm, y=precio)) + geom_col(binwidth = 5, fill='#528B8B') # No value
 
 # price vs availability_365
 pricevsavailability_365 <- data_train %>%
   group_by(availability_365) %>%
   summarise(precio = mean(price))
 
-price_ava360 <- ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col(binwidth = 5, fill='#8B1A1A') # CHECK: can seasonality be borrowed from here and scraping date?
-grid.arrange(price_nmin, price_minavgn, price_maxavgn, price_ava360, nrow =2, ncol=2)
+price_ava365 <- ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col(fill='#8B1A1A') # CHECK: can seasonality be borrowed from here and scraping date?
+grid.arrange(price_minavgn, price_ava365, nrow =1, ncol=2)
 ```
 
-Hemos juntado los gráficos en rejillas de 4, tratando de agrupar por variables parecidas entre ellas para poder compararlas entre sí.
 
-La primera comparativa, pone a la variable precio contra variables relacionadas con el tipo de habitación (room_type), camas (beds), número de habitaciones (bedrooms) y número de personas por AirBnb (accomodates).
+Da la impresión de que estas variables apenas se relacionan con el precio.
 
-Muy por encima, se aprecian detalles como que los apartamentos o **casas enteras** y las **habitaciones de hotel**, son **más caras** que habitaciones privadas dentro de una casa que habitaciones compartidas, ninguna sorpresa por aquí.
 
 <br/>
-
-En el segundo grupo de 4 gráficos, tenemos variables como el tipo de anfitrión (host is superhost), el tiempo que lleva en Airbnb (host_exp_days), y la relación con el número de reviews por mes y la nota media de las reviews.
-
-Como conclusiones principales de esta comparativa, parece que el hecho de que el host sea **superhost no supone una diferencia** muy grande, sin embargo si que parece que el hecho de tener **reviews altas** produce cierto efecto en el **aumento del precio**.
-
 <br/>
-
-FInalmente, el último grupo de gráficos compara la variable precio con la cantidad de noches que se exigen como mínimo, como máximo y la disponibilidad en el plazo de un año.
-
-A priori no parece que haya información muy interesante o determinante en estas variables y su relación con el precio.
-
-<br/>
-
-```{r exit2}
-
-knit_exit()
-
-```
 
 
 #### Análisis de la variable price, contra las variables ratings y distritos
 
-Preparamos las variables para hacer el ploteado del heatmap.
-Creamos nuevas variables de mean_ratings y mean_price con la media de cada una de estas variables por distrito, para su comparación con el precio.
-Además, añadimos una variable más que no se encuentra en la tabla de datos original, el número de habitantes por distrito en 2017, por pura curiosidad.
+Preparamos las variables para hacer el ploteado del heatmap. Creamos nuevas variables de mean_ratings y mean_price con la media de cada una de estas variables por distrito, para su comparación con el precio.
+Además, añadimos una variable más que no se encuentra en la tabla de datos original: el número de habitantes por distrito en 2017, por pura curiosidad.
 
 ```{r basemap, warning=FALSE}
 
-knit_exit()
-price_dist_rating <- data_train %>% na.omit(data_train) %>%
+
+price_dist_rating <- data_train %>% #na.omit(data_train) %>%
   select(review_scores_rating, price, neighbourhood_group_cleansed)
 
 price_dist_rating <- price_dist_rating %>%
   group_by(neighbourhood_group_cleansed) %>%
   summarise (mean_rating = mean(review_scores_rating), mean_price = mean(price))
+
+price_dist_rating <- data.frame(price_dist_rating[price_dist_rating$neighbourhood_group_cleansed!="Wanda Metropolitano",])
 
 head(price_dist_rating, 10)
 
@@ -1211,8 +1209,8 @@ heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(ma
 ```
 
 El objetivo de este gráfico era realizar un análisis multivariante a tres bandas, cogiendo la variable objetivo y dos de las variables que más nos interesan.
-Preliminarmente, esperabamos poder ver una clara relación entre estas variables, pero a nivel visual no hay nada demasiado evidente.
-Algo que llama ligeramente la atención es la cierta "simetría" que parece haber entre las columnas de las reviews y la de la población, dónde hay una serie de todos más oscuros hacia el centro de las columnas.
+Preliminarmente, esperábamos poder ver una clara relación entre estas variables, pero a nivel visual no hay nada demasiado evidente.
+Algo que llama ligeramente la atención es la cierta "simetría" que parece haber entre las columnas de las reviews y la de la población, dónde hay una serie de tonos más oscuros hacia el centro de las columnas.
 
 Es interesante ver también como las medias de reviews más altas, se encuentran en barrios como Vicálvaro, Moratalaz, Monclia, Cuidad Lineal, Fuencarral... y sin embargo zonas como el Centro o Salamanca parecen tener reviews más bajas.
 
@@ -1226,466 +1224,7 @@ Podemos concluir que aunque no muy evidente, si se aprecia un cierto incremento 
 
 <br/> <br/>
 
-#### Análisis y comparativa de variables host con variable ratings
 
-```{r host, fig.align="center", message=FALSE, warning=FALSE}
 
-# Host exp days
-host_exp <- ggplot(data_train, aes(x=host_exp_days)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
-
-# Host is super host
-host_sh <- ggplot(data_train, aes(x=host_is_superhost, fill =host_is_superhost, alpha = host_is_superhost)) + geom_histogram(stat='count', col= 'black', fill='darkorange3') +
-  theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
-
-#Comparativa ratings con host
-rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
-
-grid.arrange(host_exp, host_sh, rs_rating_sh, ncol=2, nrow =2)
-```
-
-<br/><br/>
-
-## Transformación de variables y eliminación de outliers
-
-<br/>
-
-
-Y a continuación, construimos gráficos para comparar la nueva variable con alguna de las variables previas, y ver realmente si las relaciones son mejores.
-
-Comenzamos por la variable **room_type**
-
-```{r propertyCostPerPerson, fig.height=7, fig.width=8, warning=FALSE, fig.align="center"}
-rt_price_p <- ggplot(data_train, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot(outlier.size=0.5, lwd=0.4, color='black') + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + theme(legend.position="NONE") + theme(axis.text.x = element_text(size=8)) +xlab("")
-
-rt_price <- price_rtyp <- ggplot(data_train, aes(x=room_type, y=price, fill=room_type)) + geom_boxplot(outlier.size=0.5, lwd=0.4, color='black') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=8)) + theme(legend.position="NONE") +xlab("")
-
-grid.arrange(rt_price_p, rt_price, nrow=1, ncol=2)
-```
-
-Vemos cierta **homogeneización** en los quartiles de los boxplot, y también en las medianas.
-La transformación a precio por persona también nos deja ver que todos los tipos de habitación tienen un precio parecido de media, siendo la **habitación de hotel** la que más afecta al precio.
-
-<br/>
-
-Vamos a observar ahora la relación entre el precio por persona en función del **distrito**
-
-```{r priceperbedVSneigh, fig.height=7, fig.width=9, warning=FALSE, fig.align="center"}
-dist_precio_p <- ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price, na.rm=TRUE), y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="NONE") + xlab("Distritos") + ylab("Precio por persona/noche") + theme(axis.text = element_text(size = 7)) 
-
-dist_precio <- data_train %>%
-  ggplot(aes(x=(reorder(neighbourhood_group_cleansed,price ,na.mr=TRUE)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("") + ylab("Precio") + theme(axis.text = element_text(size = 7)) 
-grid.arrange(dist_precio_p, dist_precio, nrow =1, ncol=2)
-```
-
-Claramente, el **precio por persona fluctua menos** que el precio a la hora de compararlo **por distritos**. En general, se aprecia como los precios se agrupan **entre 10 y 50 doláres** de media por persona y noche, con algún **caso extraño** como es el de ***"Wanda Metropolitano".***
-
-<br/>
-
-
-
-<br/>
-
-```{r exit}
-knit_exit()
-```
-
-#### Eliminación de outliers
-
-
-
-**Echa un ojo a este código Antonio, que da error**
-
-```{r delOutliers, eval=FALSE, warning=FALSE, include=FALSE}
-
-data_train <- data_train %>% mutate(pricePP = price/accommodates) data$ac #Este Código da error
-umbral <- 150
-plazas <- 10
-data_train <- data_train[data_train$pricePP<umbral & data_train$acomm<=plazas]
-
-```
-
-<br/>
-
-
-
-<br/><br/>
-
-## Control de calidad del dato
-
-<br/>
-
-#### Deteccion de valores atipicos
-
-Comprobamos si hay algunos datos atipicos en nuestro conjunto de datos.
-
-```{r datos sum, echo=FALSE, warning=FALSE}
-summary(data_train_del_na)
-```
-
-Vemos, que valores atipicos pueden tener las variables *accommodates*, *bedrooms*, *price*, *minimum_nights*, *reviews_per_month*, *last_review_days*, *host_listings_count*, *price_per_person*.
-Revisamos estas variables mas detallado.
-
-<br/>
-
-Valores atipicos de variable accommodates
-
-```{r datos acc graph, echo=FALSE, warning=FALSE}
-
-plot(data_train_del_na$accommodates)
-
-ggplot(data = data_train_del_na) +
-   aes(x = accommodates) +
-   geom_boxplot(outlier.colour = "Red", fill = "orange") +
-   theme_bw()
-
-
-ggplot(data = data_train_del_na) +
-   aes(x = accommodates) +
-   geom_dotplot(dotsize = 0.1,color = "green") +
-   theme_minimal()
-```
-
-<br/>
-
-Valores atipicos de variable bedrooms
-
-```{r datos b graph, echo=FALSE, warning=FALSE}
-plot(data_train_del_na$bedrooms)
-
-ggplot(data = data_train_del_na) +
-   aes(x = bedrooms) +
-   geom_boxplot(outlier.colour = "Red", fill = "green") +
-   theme_bw()
-
-
-ggplot(data = data_train_del_na) +
-   aes(x = bedrooms) +
-   geom_dotplot(dotsize = 0.1,color = "blue") +
-   theme_minimal()
-```
-
-<br/>
-
-Valores atipicos de variable minimum_nights
-
-```{r datos min_n graph, echo=FALSE, warning=FALSE}
-plot(data_train_del_na$minimum_nights)
-
-ggplot(data = data_train_del_na) +
-   aes(x = minimum_nights) +
-   geom_boxplot(outlier.colour = "Red", fill = "yellow") +
-   theme_bw()
-
-ggplot(data = data_train_del_na) +
-   aes(x = minimum_nights) +
-   geom_dotplot(dotsize = 0.1,color = "violet") +
-   theme_minimal()
-```
-
-Variable de mínimos noches muestra la presencia de valores atípicos, por lo que requiere modificaciones.
-Como es inusual que las noches mínimas estén por encima de 100 en cualquier airbnb, es claramente un valor atípico y debe eliminarse de nuestros datos.
-
-<br/>
-
-A continuación, guardamos los datos modificados en un nuevo dataset
-
-```{r outliers nights, echo=FALSE, warning=FALSE}
-# en primero vamos a guardardatos modificados en nuevo dataset data_train_clean para tener accesso de datos previos
-
-data_train_clean <- data_train_del_na
-
-uc1 = quantile(data_train_clean$minimum_nights, probs = 0.95, na.rm = TRUE)
-  lc1 = quantile(data_train_clean$minimum_nights, probs = 0.05, na.rm = TRUE)
-  data_train <- subset(data_train_clean, minimum_nights >= lc1 & minimum_nights <= uc1)
-
-summary(data_train_clean$minimum_nights)
-```
-
-<br/>
-
-Valores atipicos de variable price y price_per_person
-
-```{r datos precio graph, echo=FALSE, warning=FALSE}
-plot(data_train_clean$price)
-
-ggplot(data = data_train_clean) +
-   aes(x = price) +
-   geom_boxplot(outlier.colour = "Red", fill = "blue") +
-   theme_bw()
-
-
-ggplot(data = data_train_clean) +
-   aes(x = price) +
-   geom_dotplot(dotsize = 0.1,color = "red") +
-   theme_minimal()
-```
-
-```{r datos pr p graph, echo=FALSE, warning=FALSE}
-plot(data_train_clean$price_per_person)
-
-ggplot(data = data_train_clean) +
-   aes(x = price_per_person) +
-   geom_boxplot(outlier.colour = "Red", fill = "blue") +
-   theme_bw()
-
-ggplot(data = data_train_clean) +
-   aes(x = price_per_person) +
-   geom_dotplot(dotsize = 0.1,color = "red") +
-   theme_minimal()
-```
-
-Variable de precios por persona muestra la presencia de valores atípicos, por lo que requiere modificaciones.
-Como es inusual que la una noche para una persona vale 9000 euros.
-
-```{r outliers price, echo=FALSE, warning=FALSE}
-
-uc1 = quantile(data_train_clean$price_per_person, probs = 0.95, na.rm = TRUE)
-  lc1 = quantile(data_train_clean$price_per_person, probs = 0.05, na.rm = TRUE)
-  data_train <- subset(data_train_clean, price_per_person >= lc1 & price_per_person <= uc1)
-
-summary(data_train_clean$price_per_person)
-```
-
-```{r outliers pr, echo=FALSE, warning=FALSE}
-summary(data_train_clean$price)
-```
-
-```{r datos pr graph, echo=FALSE, warning=FALSE}
-
-ggplot(data = data_train_clean) +
-   aes(x = price) +
-   geom_boxplot(outlier.colour = "Red", fill = "blue") +
-   theme_bw()
-
-ggplot(data = data_train_clean) +
-   aes(x = price_per_person) +
-   geom_boxplot(outlier.colour = "Red", fill = "blue") +
-   theme_bw()
-```
-
-<br/>
-
-Valores atipicos de variable minimum_nights
-
-```{r datos m_n graph, echo=FALSE, warning=FALSE}
-plot(data_train$minimum_nights)
-
-ggplot(data = data_train) +
-   aes(x = minimum_nights) +
-   geom_boxplot(outlier.colour = "Red", fill = "yellow") +
-   theme_bw()
-
-ggplot(data = data_train) +
-   aes(x = minimum_nights) +
-   geom_dotplot(dotsize = 0.1,color = "violet") +
-   theme_minimal()
-```
-
-<br/>
-
-Valores atipicos de variable reviews_per_month
-
-```{r datos r_m gr, echo=FALSE, warning=FALSE}
-
-plot(data_train_clean$reviews_per_month)
-   aes(x = reviews_per_month) +
-   geom_boxplot(outlier.colour = "Red", fill = "violet") +
-   theme_bw()
-
-
-ggplot(data = data_train_clean) +
-   aes(x = reviews_per_month) +
-   geom_dotplot(dotsize = 0.1,color = "orange") +
-   theme_minimal()
-```
-
-<br/>
-
-Valores atipicos de variable last_review_days
-
-```{r datos l_r graph, echo=FALSE, warning=FALSE}
-
-plot(data_train_clean$last_review_days)
-
-ggplot(data = data_train_clean) +
-   aes(x = last_review_days) +
-   geom_boxplot(outlier.colour = "Red", fill = "orange") +
-   theme_bw()
-
-
-ggplot(data = data_train_clean) +
-   aes(x = last_review_days) +
-   geom_dotplot(dotsize = 0.1,color = "navy") +
-   theme_minimal()
-```
-
-<br/>
-
-Valores atípicos de variable host_listings_count
-
-```{r datos coun graph, echo=FALSE, warning=FALSE}
-plot(data_train_clean$host_listings_count)
-
-ggplot(data = data_train_clean) +
-   aes(x = host_listings_count) +
-   geom_boxplot(outlier.colour = "Red", fill = "orange") +
-   theme_bw()
-
-ggplot(data = data_train_clean) +
-   aes(x = host_listings_count) +
-   geom_dotplot(dotsize = 0.1,color = "navy") +
-   theme_minimal()
-```
-
-```{r outliers count, echo=FALSE, warning=FALSE}
-
-uc1 = quantile(data_train_clean$host_listings_count, probs = 0.95, na.rm = TRUE)
-  lc1 = quantile(data_train_clean$host_listings_count, probs = 0.05, na.rm = TRUE)
-  data_train <- subset(data_train_clean, host_listings_count >= lc1 & host_listings_count <= uc1)
-
-summary(data_train_clean$host_listings_count)
-```
-
-```{r datos c out graph, echo=FALSE, warning=FALSE}
-ggplot(data = data_train_clean) +
-   aes(x = host_listings_count) +
-   geom_boxplot(outlier.colour = "Red", fill = "orange") +
-   theme_bw()
-```
-
-```{r outliers sresult, echo=FALSE, warning=FALSE}
-summary(data_train_clean)
-```
-
-En resumen, eliminamos valores atipicos para variables *minimum_nights*, *price_per_person*, *host_listings_count*.
-
-<br/> <br/>
-
-#### Antonio, esta parte no corre el codigo bien... échale un ojo
-
-```{r outliers, eval=FALSE, warning=FALSE, include=FALSE}
-
-#outliers <- data_train[data$price > quantile(data_train$price)[4],]
-
-#count(outliers)
-
-#ggplot(outliers, aes(x=price)) + geom_histogram(binwidth = 10)
-
-#ggplot(outliers, aes(y=price)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
-
-#outliers <- outliers %>% mutate(pricePP = price/accommodates)
-
-#quantile(outliers$pricePP)
-
-#outliersPerPerson <- outliers[(outliers$pricePP) > quantile(outliers$pricePP)[4],]
-
-#ggplot(outliersPerPerson, aes(y=pricePP)) + geom_boxplot() + scale_y_continuous(trans = 'log10')
-
-#count(outliersPerPerson[outliersPerPerson$pricePP > 1000, ])
-
-#head(outliersPerPerson[outliersPerPerson$pricePP > 1000, "description"])
-
-#insane <- outliersPerPerson[outliersPerPerson$pricePP > 1000,]
-
-#count(insane)
-
-#summary(insane)
-
-#ggplot(insane, aes(x=price)) + geom_histogram()
-
-#cuentaDistritosInsane <- insane %>%
-#  group_by(neighbourhood_group_cleansed) %>%
-#  summarise(count = n()) %>%
-#  arrange(-count)
-
-#ggplot(insane, aes(x=neighbourhood_group_cleansed)) + geom_histogram(stat='count')
-
-#ggplot(insane, aes(x=room_type, y=pricePP)) + geom_boxplot()
-
-#insane$accommodates
-
-#insane$pricePP
-
-#insane[insane$neighbourhood_group_cleansed=="Villaverde", c("description","price")]
-
-#insane$reviews_per_month
-
-# TODO Yo todo lo que supere los 105-150€/persona lo quitaba
-
-```
-
-<br/><br/>
-
-## Modelo de Regresión Lineal: Ajuste, interpretación y diagnósis
-
-<br/>
-
-#### Correlación entre variables "a ojo"
-
-```{r correlation, eval=FALSE, warning=FALSE, include=FALSE}
-
-# TODO si se va a usar host_since, debería ser un entero hasta la última fecha
-
-numericData <- data_train[,c("price", "pricePP","accommodates","bedrooms","beds","minimum_nights","availability_365","review_scores_rating","review_scores_location","review_scores_value","review_scores_accuracy","review_scores_cleanliness","review_scores_checkin","review_scores_communication")]
-
-numericData <- data_train[,c("price", "pricePP","accommodates","bedrooms","beds","minimum_nights","availability_365","review_scores_location","review_scores_communication")]
-
-ggcorrplot(cor(numericData), lab = TRUE) # Accommodates es la que mayor correlación muestra
-
-```
-
-<br/>
-
-#### Regresión lineal multiple
-
-```{r regression, warning=FALSE}
-lm_fit <- lm(price~accommodates, data=data_train) #No hay duda de que el número de plazas influye
-summary(lm_fit)
-
-
-lm_fit <- lm(price~accommodates+bedrooms, data=data_train)
-summary(lm_fit)
-
-model <- lm(price~accommodates*bedrooms, data = data_train) # Incluiría Bedrooms. TODO: profundizar en el porqué.
-
-summary(model)
-
-#autoplot(model)
-
-lm_fit <- lm(log(price)~accommodates:bedrooms+beds+minimum_nights+host_is_superhost+availability_365+room_type+neighbourhood_group_cleansed+review_scores_rating+review_scores_location+review_scores_value+review_scores_accuracy+review_scores_cleanliness+review_scores_checkin+review_scores_communication, data=data)
-summary(lm_fit)
-
-#autoplot(lm_fit)
-
-
-lm_fit <- lm(price~longitude+latitude+accommodates:bedrooms+beds+minimum_nights+host_is_superhost+availability_365+room_type+neighbourhood_group_cleansed+review_scores_rating+review_scores_location+review_scores_value+review_scores_accuracy+review_scores_cleanliness+review_scores_communication, data=data)
-summary(lm_fit) #Pasa algo muy interesante: al separar el Wanda del resto, la localización tiene más peso, y de repente el rating airbnb de location pierde todo su peso. El barrio no vale un duro, y sin embargo el distrito sí.
-
-model <- lm(price~latitude+accommodates:bedrooms+beds+availability_365+room_type+neighbourhood_group_cleansed+review_scores_rating+review_scores_value+review_scores_cleanliness+review_scores_communication, data=data) # Al hacer log del precio, el R² queda casi 0.6
-
-
-summary(model)
-
-#autoplot(model)
-
-# Regresión a saco:
-#model <- lm_fit <- lm(log(price)~latitude+accommodates*beds*bedrooms+host_since+room_type+neighbourhood_cleansed+review_scores_rating+review_scores_location+review_scores_value+review_scores_cleanliness+number_of_reviews+number_of_reviews+number_of_reviews_l30d+maximum_nights_avg_ntm+maximum_nights+minimum_minimum_nights+maximum_maximum_nights+maximum_nights_avg_ntm+availability_30+instant_bookable+property_type+host_acceptance_rate+bathrooms_text+host_response_rate+host_location+host_response_time+host_identity_verified, data=data)
-
-#summary(model)
-
-#autoplot(model)
-
-
-dataNum <- data_train[,unlist(lapply(data_train, is.numeric))]
-dataNum$pricePP <- NULL
-
-summary(lm_fit <- lm(log(price)~., data=dataNum)) # Al hacer log del precio, el R² queda casi 0.6
-
-
-#regfit <- leaps::regsubsets(log(price)~.,data_train)
-
-```
-
-<br/> <br/>
 
 <div class="toxicity-extend-page" data-unique="toxicity-extend-page" style="height:0;">
