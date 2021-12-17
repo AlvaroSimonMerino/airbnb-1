@@ -20,6 +20,7 @@ output:
     toc: yes
     toc_float: yes
     df_printed: paged
+    self_contained: true
   pdf_document: 
     theme: united
     code_folding: "hide"
@@ -64,6 +65,7 @@ library(shiny)
 library(GGally)
 library(RColorBrewer)
 library(ggExtra)
+library(DMwR)
 ```
 
 <br/> <br/>
@@ -90,14 +92,17 @@ Dicho objetivo, a su vez se dividirá en los siguientes pasos:
 
 ## Selección preliminar de variables
 
-```{r, , message=FALSE, warning=FALSE, include=FALSE}
+```{r warning=FALSE, , message=FALSE, include=FALSE}
 RawData <- read.csv("../00_DatosOriginales/listings.csv")
 ```
 
 El conjunto de datos original está formado por un total de `r nrow(RawData)` datos y `r ncol(RawData)` variables, que son:
 
 ```{r message=FALSE, warning=FALSE, paged.print=TRUE, echo=FALSE}
-colnames(RawData)
+col_name <- colnames(RawData)
+kable(as.matrix(col_name)) %>%
+  kable_styling("striped") %>% 
+  scroll_box(width = "100%", height = "350px")
 ```
 
 <br/>
@@ -140,7 +145,9 @@ voi <- data.frame("Variable" = c("host_id", "host_since", "host_is_superhost", "
 voi$Tipo <- sapply(data[,voi$Variable],class)
 voi <- voi[,c(1,3,2)]
 
-kable(voi) %>% kable_styling("striped")
+kable(voi) %>% kable_styling("striped") %>%
+  scroll_box(width = "100%", height = "350px")
+
 ```
 
 Aunque se intuye antes de comenzar que hay variables que van a aportar poca información o son similares a otras o combinaciones de varias, de momento se conservarán cara a realizar un análisis previo para justificar su inclusión o exclusión de nuestro estudio.
@@ -219,9 +226,8 @@ sorted_spdf_df <- spdf_df %>% arrange(name)
 sorted_spdf_df$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
 
 # Gráfico de airbnbs localizadas por latitud y longitud
-adjusted_price <- subset(data_train, price >0 & price < 150)
-price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point(alpha = 0.05, colour="blue") + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
-price_map
+location <- ggplot(data_train, aes(x=longitude, y=latitude)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point(alpha = 0.05, colour="#B03060") + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1)
+location
 
 
 ```
@@ -570,33 +576,31 @@ kable(nuevasVariables)%>%kable_styling("striped")
 
 ## Estudio e imputación de valores faltantes
 
-```{r data_na, warning=FALSE}
+```{r data_na, echo=FALSE, message=FALSE, warning=FALSE}
 
 data_train_del_na <- data_train
 
 ```
 
-Una vez realizada la copia del conjunto de datos de Training sobre la cual trabajaremos, se comprueba cuántos valores faltantes tiene cada variable:
+Una vez realizada la copia del conjunto de datos de Training, sobre la cual trabajaremos, se comprueba cuántos valores faltantes tiene cada variable:
 
-```{r grafico_na, echo=FALSE, fig.height=5, fig.width=7.5, warning=FALSE}
+```{r grafico_na, echo=FALSE, message=FALSE, warning=FALSE, fig.height=5, fig.width=7.5}
 
 na_vis <- data.frame(t(colSums(is.na(data_train))))
 na_bar <- data.frame(Features = names(na_vis),totals=colSums(na_vis))
 
-na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features, label = totals))+
-  geom_bar(stat = "identity")+
+na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features, label = totals))+  geom_col() +
   ggtitle("NA Distribution")+
   xlab("Variables")+
   ylab("Total NAs")+
   coord_flip()+
   geom_text(size = 2, position = position_stack(vjust = 0.5))+
-  theme_bw()+
   theme(plot.title = element_text(hjust = 0.5)) + theme(legend.position = "none")
 
 ```
 
-```{r fig.height=7.5, fig.width=8, warning=FALSE, fig.align="center",eval=FALSE}
-#md.pattern(data_train, rotate.names=TRUE)
+```{r fig.height=7.5, fig.width=8, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center",eval=FALSE}
+md.pattern(data_train, rotate.names=TRUE)
 ```
 
 En el caso de *host_is_superhost* y *host_exp_days*, solo tenemos 19 observaciones faltantes, por lo que se optará por reemplazar directamente:
@@ -607,7 +611,7 @@ En el caso de *host_is_superhost* y *host_exp_days*, solo tenemos 19 observacion
 
 <br/>
 
-```{r na min, warning=FALSE}
+```{r na min, echo=FALSE, message=FALSE, warning=FALSE}
 
 data_train_del_na$host_is_superhost[which(is.na(data_train_del_na$host_is_superhost))] <- FALSE
 data_train_del_na$host_exp_days[which(is.na(data_train_del_na$host_exp_days))] <- 0
@@ -620,26 +624,29 @@ Como el resto de variables tiene una proporción considerable de datos faltantes
 
 He aquí una matriz de correlación de variables con NA:
 
-```{r cor na, warning=FALSE}
+```{r cor na, echo=FALSE, message=FALSE, warning=FALSE}
 x <- as.data.frame(abs(is.na(data_train_del_na)))
 y <- x[, which(colSums(x) > 0)]
 
 kable(cor(y)) %>%
   kable_styling("striped", full_width = F) %>% 
-  scroll_box(width = "100%")
+  scroll_box(width = "100%", height = T)
 ```
 
 ```{r datos faltantes train, echo=FALSE, warning=FALSE}
 
-#colSums(is.na(data_train_del_na))
-#aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE, plot=FALSE))
+csna <- colSums(is.na(data_train_del_na))
+aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE, plot=FALSE)
+kable(as.matrix(csna)) %>% kable_styling("striped")  %>% kable_styling("striped") %>% scroll_box(width= "100%", height = "350px")
 ```
 
 <br/>
 
 Para seleccionar un método de sustitución de valores faltantes, primero se analizará qué variables están altamente correlacionadas para excluírlas del proceso, puesto que pueden conducir a una multicolinealidad y, en consecuencia, dificultar su modelado:
 
-```{r datos high corr,  echo=FALSE, warning=FALSE}
+\
+
+```{r datos high corr, echo=FALSE, message=FALSE, warning=FALSE}
 high.corr<-function(x){
   df<-x[sapply(x,is.numeric)]
   fit<-corr.test(df)
@@ -648,8 +655,8 @@ high.corr<-function(x){
   return(rownames(inds))
 }
 
-
 high.corr(data_train_del_na)
+
 
 ```
 
@@ -663,12 +670,15 @@ high.corr(data_train_del_na)
 
 Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`%).
 
-Intentamos imputar datos faltantes de variable *bedrooms* usando regresion lineal, como sabemos que hay correlacion alta entre esta variable y variable *accommodates*.
+Intentamos imputar datos faltantes de la variable *bedrooms* usando regresión lineal, ya que sabemos que hay correlacion alta entre esta variable y la variable *accommodates*.
 
-```{r datos na line,  echo=FALSE, warning=FALSE}
-knit_exit()
+```{r datos na line, echo=FALSE, message=FALSE, warning=FALSE}
 fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
-summary(fit)
+
+
+kable(as.matrix(summary(fit))) %>%
+  kable_styling("striped", full_width = F) %>% 
+  scroll_box(width = "100%", height = "350px")
 ```
 
 Vemos que los coeficientes de regresión lineal son significativos, sin embargo, R es lo suficientemente pequeño y explica solo el 47,6% de variación.
@@ -677,14 +687,18 @@ Vemos que los coeficientes de regresión lineal son significativos, sin embargo,
 
 Veamos en qué se diferencian los valores predichos de los originales.
 
-```{r datos na line result,  echo=FALSE, warning=FALSE}
-#actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
-#pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
-#regr.eval(actuals, pred_lm)
+```{r datos na line result, echo=FALSE, message=FALSE, warning=FALSE}
+actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
+pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
+
+
+kable(as.matrix(regr.eval(actuals, pred_lm))) %>%
+  kable_styling("striped", full_width = F) %>% 
+  scroll_box(width = "100%")
 ```
 
-El error porcentual absoluto medio (mape) fue 26,4%, que es un indicador insatisfactorio.
-Probamos otros methodos.
+El error porcentual absoluto medio (mape) fue 26,4%, que es un resultado insatisfactorio.
+Probamos otros métodos.
 
 <br/>
 
@@ -692,32 +706,34 @@ Probamos otros methodos.
 
 <br/>
 
-Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra vamos usar methodos *rf* y *cart* de paquete *mice*.
-Los métodos de imputación predeterminados de *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se puede invertir y dará como resultado su error.
+Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra, vamos usar methodos *rf* y *cart* del paquete *mice*.
+Los métodos de imputación predeterminados de *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se podrá invertir.
 
-Utilizando este paquete, podemos imputar datos faltantes para todas variables, quales tienen NA.
+Utilizando este paquete, podemos imputar datos faltantes para todas variables que contienen NAs.
 
 Resultatos para *random forest*.
 
-```{r datos imp rf, echo=FALSE, warning=FALSE}
+```{r datos imp rf, echo=FALSE, message=FALSE, warning=FALSE}
 
 miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)
 miceOutput <- complete(miceMod)
+kable(as.matrix(miceOutput)) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%", height = "350px")
 ```
 
 <br/>
 
 Comprobamos, si hay algunos NA en conjunto de datos.
 
-```{r datos imp rf na, echo=FALSE, warning=FALSE}
+```{r datos imp rf na, echo=FALSE, message=FALSE, warning=FALSE}
 anyNA(miceOutput) # False
 ```
 
-Pues en output no tenemos datos faltantes.
-Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales.
-Mostramos el gráfico *densityplot*.
+Se confirma la ausencia de datos faltantes.
+Vamos a comparar las distribuciones de los datos imputeados con los originales, usando el gráfico *densityplot*..
 
-```{r datos imp rf graph, echo=FALSE, warning=FALSE}
+```{r datos imp rf graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
 densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
 ```
 
@@ -725,33 +741,35 @@ densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
 
 Resultatos para *cart* (classification and regression trees).
 
-```{r datos imp cart, echo=FALSE, warning=FALSE}
+```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE}
 miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
 miceOutput_cart <- complete(miceMod_cart)
+kable(as.matrix(miceOutput_cart)) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%", height = "350px")
 ```
 
 <br/>
 
-Comprobamos, si hay algunos NA en conjunto de datos.
+Comprobamos si queda algún NA en el conjunto de datos.
 
-```{r datos imp cart na, echo=FALSE, warning=FALSE}
+```{r datos imp cart na, echo=FALSE, message=FALSE, warning=FALSE}
 anyNA(miceOutput_cart) # False
 ```
 
-Pues en output no tenemos datos faltantes.
-Comparemos qué tan cercana es la distribución de los datos recibidos a los actuales.
-Mostramos el gráfico *densityplot*.
+Queda confirmada la ausencia de datos faltantes.
+Vamos a comparar las distribuciones de los datos imputeados con los originales, usando el gráfico *densityplot*.
 
-```{r datos imp cart graph, echo=FALSE, warning=FALSE}
+```{r datos imp cart graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
 densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
 ```
 
 <br/>
 
-Podemos apreciar que los datos imputados son muy cercanos a lo datos observados, pero el mejor resultado para las variables lo da el methodo *cart*.
-Usamos este methodo para imputación de valores faltantes (NA) en nuestras variables.
+Podemos apreciar que los datos imputados son muy cercanos a lo datos observados, pero el resultado que más se ajusta es por el método *cart*.
+Usamos este método para imputar los valores faltantes (NA) en nuestras variables.
 
-```{r datos imputacion, echo=FALSE, warning=FALSE}
+```{r datos imputacion, echo=FALSE, message=FALSE, warning=FALSE}
 data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
 
 data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
@@ -763,45 +781,53 @@ data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_day
 
 <br/>
 
-Veamos, si hemos han imputado todos datos faltantes en nuestro conjunto de datos *data_train*.
+Vamos a comprobar si tras las imputaciones, hemos conseguido eleminar todos los NAs de nuestra base de datos *data_train*.
 
-```{r datos cart na, echo=FALSE, warning=FALSE}
-colSums(is.na(data_train_del_na)) # False
+```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE}
+na_dat <- colSums(is.na(data_train_del_na)) # False
+kable(as.matrix(na_dat)) %>%
+  kable_styling("striped") %>%
+  scroll_box(width = "100%", height = TRUE)
 ```
 
-En resultado ya tenemos *data_train* sin datos faltantes y podemos mas eficaz trabajar con el.
+Observamos que *data_train* ya no tiene datos faltantes y podemos trabajar con los datos de una forma más eficaz.
+
+```{r}
+data_train <- data_train_del_na
+
+```
+
 <br/> <br/>
-
-<iframe title="" aria-label="Table" id="datawrapper-chart-5YJAK" src="https://datawrapper.dwcdn.net/5YJAK/1/" scrolling="no" frameborder="0" style="border: none;" width="600" height="887"></iframe>
-
-```{r exit}
-knit_exit()
-```
 
 ## Análisis exploratorio multivariante
 
 En esta parte se analizará la relación de la variable objetivo $price$ con el resto de variables seleccionadas.
 
-#### neighbourhood_group_cleansed
+#### Análisis del precio en función al distrito
 
-```{r priceVSngc}
-
-ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, mean(neighbourhood_group_cleansed)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none")
-
+```{r priceVSngc, fig.align="center", message=FALSE, warning=FALSE}
+data_train %>%
+  ggplot(aes(x=(reorder(neighbourhood_group_cleansed,price ,na.mr=TRUE)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("Distritos") + ylab("Precio")
 
 
 ```
 
-```{r priceVSroomtype, warning=FALSE, message=FALSE}
+En el gráfico se aprecia que en la mayoría de casos, el precio se encuentra entre 50 y 100 dólares, y que hay una importante fluctuación, que a priori no parece tener mucho que ver con la localización especifica.
+El caso que más llama la atención, es el del distrito de "San Blas - Canillejas" sin haber un motivo aparente por el que el precio fluctua tanto.
+Lo estudiaremos en profundidad más adelante.
 
+<br/>
+
+A continuación, vamos a comparar la variable precio con una serie de variables de interés, para ver si relación utilizando técnicas de análisis multivariante y distintos tipos de gráficos.
+
+```{r priceVSroomtype, fig.align="center", message=FALSE, warning=FALSE}
 
 # Price vs room type
 price_rtyp <- ggplot(data_train, aes(x=room_type, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
 
-# price vs neighbourhood_group_cleansed
 
 # price vs host_since
-price_hs <- ggplot(data_train, aes(x=host_since, y=price)) + geom_col(binwidth = 10, fill='#8B1C62') + scale_y_continuous(trans='log') # CHECK: Irrelevant TODO: agregar por promedio 
+price_hs <- ggplot(data_train, aes(x=host_exp_days, y=price)) + geom_col(binwidth = 10, fill='#8B1C62') + scale_y_continuous(trans='log') # CHECK: Irrelevant TODO: agregar por promedio 
 
 # price vs host_is_superhost
 price_hisph <- ggplot(data_train, aes(x=host_is_superhost, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#FFA500') + scale_y_continuous(trans='log10') #CHECK: bit of an edge #FFA500
@@ -860,8 +886,8 @@ p <- ggplot(data_train, aes(x=reviews_per_month, y=price, color=price, size=pric
 price_rvpm <- ggMarginal(p, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
 
 # review_scores_rating vs price
-p <- ggplot(data_train, aes(x=review_scores_rating, y=price, color=price, size=price)) + geom_point() + theme(legend.position="none")
-price_rscr <- ggMarginal(p, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
+pr <- ggplot(data_train, aes(x=review_scores_rating, y=price, color=price, size=price)) + geom_point() + theme(legend.position="none")
+price_rscr <- ggMarginal(pr, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
 
 # grids
 grid.arrange(price_rtyp, price_acc, price_bedr, price_bds, nrow =2, ncol=2)
@@ -869,13 +895,31 @@ grid.arrange(price_hs, price_hisph, price_rvpm, price_rscr, nrow =2, ncol=2)
 grid.arrange(price_nmin, price_minavgn, price_maxavgn, price_ava360, nrow =2, ncol=2)
 ```
 
+Hemos juntado los gráficos en rejillas de 4, tratando de agrupar por variables parecidas entre ellas para poder compararlas entre sí.
+
+La primera comparativa, pone a la variable precio contra variables relacionadas con el tipo de habitación (room_type), camas (beds), número de habitaciones (bedrooms) y número de personas por AirBnb (accomodates).
+
+Muy por encima, se aprecian detalles como que los apartamentos o **casas enteras** y las **habitaciones de hotel**, son **más caras** que habitaciones privadas dentro de una casa que habitaciones compartidas, ninguna sorpresa por aquí.
+
+<br/>
+
+En el segundo grupo de 4 gráficos, tenemos variables como el tipo de anfitrión (host is superhost), el tiempo que lleva en Airbnb (host_exp_days), y la relación con el número de reviews por mes y la nota media de las reviews.
+
+Como conclusiones principales de esta comparativa, parece que el hecho de que el host sea **superhost no supone una diferencia** muy grande, sin embargo si que parece que el hecho de tener **reviews altas** produce cierto efecto en el **aumento del precio**.
+
+<br/>
+
+FInalmente, el último grupo de gráficos compara la variable precio con la cantidad de noches que se exigen como mínimo, como máximo y la disponibilidad en el plazo de un año.
+
+A priori no parece que haya información muy interesante o determinante en estas variables y su relación con el precio.
+
 <br/>
 
 #### Análisis de la variable price, contra las variables ratings y distritos
 
-Preparación de variables para ploteado de heatmap.
-Nuevas variables de mean_ratings y mean_price con la media de cada una de estas variables por distrito, para su comparación con el precio.
-Además, añadimos una variable más que no se encuentra en la tabla de datos original, el número de habitantes por distrito en 2017.
+Preparamos las variables para hacer el ploteado del heatmap.
+Creamos nuevas variables de mean_ratings y mean_price con la media de cada una de estas variables por distrito, para su comparación con el precio.
+Además, añadimos una variable más que no se encuentra en la tabla de datos original, el número de habitantes por distrito en 2017, por pura curiosidad.
 
 ```{r basemap, warning=FALSE}
 price_dist_rating <- data_train %>% na.omit(data_train) %>%
@@ -899,69 +943,110 @@ pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 
 Y a continuación el heatmap de la matriz creada anteriormente
 
-```{r heatmap, warning=FALSE}
+```{r heatmap, fig.align="center", message=FALSE, warning=FALSE}
 # Matrix format
 mat <- pdr_mat
 matriz <- as.matrix(mat)
-heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(matriz==0, NA, matriz), notecex=1.0,na.color=par("bg"), cexCol=0.6, col= colorRampPalette(brewer.pal(10, "Reds"))(15))
+heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(matriz==0, NA, matriz), notecex=0.7,na.color=par("bg"), cexCol=0.7, col= colorRampPalette(brewer.pal(10, "YlOrRd"))(10))
 # Heatmap
 #d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
 
 #heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
 ```
 
+El objetivo de este gráfico era realizar un análisis multivariante a tres bandas, cogiendo la variable objetivo y dos de las variables que más nos interesan.
+Preliminarmente, esperabamos poder ver una clara relación entre estas variables, pero a nivel visual no hay nada demasiado evidente.
+Algo que llama ligeramente la atención es la cierta "simetría" que parece haber entre las columnas de las reviews y la de la población, dónde hay una serie de todos más oscuros hacia el centro de las columnas.
+
+Es interesante ver también como las medias de reviews más altas, se encuentran en barrios como Vicálvaro, Moratalaz, Monclia, Cuidad Lineal, Fuencarral... y sin embargo zonas como el Centro o Salamanca parecen tener reviews más bajas.
+
+También se puede apreciar muy ligeramente que las zonas dónde hay más población, tienen quizás una menor media de precio, intuyendo que quizás haya menos cantidad de Airbnbs porque hay más población "autóctona".
+
+<br/>
+
+Y finalmente imprimimos sobre el mapa de madrid con un gradiente de color en función al precio
+
+```{r mapa precio, fig.align="center", message=FALSE, warning=FALSE}
+# Gráfico de airbnbs localizadas por latitud y longitud, color por precio
+adjusted_price <- subset(data_train, price >0 & price < 150)
+price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
+price_map
+```
+
+Podemos concluir que aunque no muy evidente, si se aprecia un cierto incremento de color naranja asociado a precios más altos, en los distritos localizados en el centro de la ciudad.
+
 <br/> <br/>
 
-#### host_since y superhosts
+#### Análisis y comparativa de variables host con variable ratings
 
-```{r host, message=FALSE, warning=FALSE}
-
+```{r host, fig.align="center", message=FALSE, warning=FALSE}
 
 # Host exp days
-host_since <- ggplot(data_train, aes(x=host_since)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
+host_exp <- ggplot(data_train, aes(x=host_exp_days)) + geom_histogram(bins = 50, fill="darkslategray", col='white') + theme(legend.position = "none")
 
 # Host is super host
 host_sh <- ggplot(data_train, aes(x=host_is_superhost, fill =host_is_superhost, alpha = host_is_superhost)) + geom_histogram(stat='count', col= 'black', fill='darkorange3') +
   theme(axis.text.x = element_text(size=8)) + theme(legend.position = "none")
 
 #Comparativa ratings con host
-rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) +
-  geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
-grid.arrange(host_since, host_sh, rs_rating, rs_rating_sh, ncol=2, nrow =2)
+rs_rating_sh <- ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
+
+grid.arrange(host_exp, host_sh, rs_rating_sh, ncol=2, nrow =2)
 ```
+
+<br/><br/>
 
 ## Transformación de variables y eliminación de outliers
 
 <br/>
 
-Ajustar al número de camas:
+Vamos a realizar una transformación sobre la variable precio, para convertirla en precio por persona (y por noche).
 
 ```{r priceperperson, warning=FALSE}
-data_train_clean$price_per_person = data_train_clean$price/data_train_clean$accommodates
+data_train$price_per_person = data_train$price/data_train$accommodates
+
 ```
 
-```{r propertyCostPerPerson, warning=FALSE}
-ggplot(data_train_clean, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
+Y a continuación, construimos gráficos para comparar la nueva variable con alguna de las variables previas, y ver realmente si las relaciones son mejores.
+
+Comenzamos por la variable **room_type**
+
+```{r propertyCostPerPerson, fig.height=7, fig.width=8, warning=FALSE, fig.align="center"}
+rt_price_p <- ggplot(data_train, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot(outlier.size=0.5, lwd=0.4, color='black') + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + theme(legend.position="NONE") + theme(axis.text.x = element_text(size=8)) +xlab("")
+
+rt_price <- price_rtyp <- ggplot(data_train, aes(x=room_type, y=price, fill=room_type)) + geom_boxplot(outlier.size=0.5, lwd=0.4, color='black') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=8)) + theme(legend.position="NONE") +xlab("")
+
+grid.arrange(rt_price_p, rt_price, nrow=1, ncol=2)
 ```
+
+Vemos cierta **homogeneización** en los quartiles de los boxplot, y también en las medianas.
+La transformación a precio por persona también nos deja ver que todos los tipos de habitación tienen un precio parecido de media, siendo la **habitación de hotel** la que más afecta al precio.
 
 <br/>
 
-neighbourhood_group_cleansed
+Vamos a observar ahora la relación entre el precio por persona en función del **distrito**
 
-```{r priceperbedVSneigh, warning=FALSE}
-ggplot(data_train, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()
+```{r priceperbedVSneigh, fig.height=7, fig.width=9, warning=FALSE, fig.align="center"}
+dist_precio_p <- ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price, na.rm=TRUE), y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="NONE") + xlab("Distritos") + ylab("Precio por persona/noche") + theme(axis.text = element_text(size = 7)) 
+
+dist_precio <- data_train %>%
+  ggplot(aes(x=(reorder(neighbourhood_group_cleansed,price ,na.mr=TRUE)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("") + ylab("Precio") + theme(axis.text = element_text(size = 7)) 
+grid.arrange(dist_precio_p, dist_precio, nrow =1, ncol=2)
 ```
+
+Claramente, el **precio por persona fluctua menos** que el precio a la hora de compararlo **por distritos**.
+En general, se aprecia como los precios se agrupan **entre 10 y 50 doláres** de media por persona y noche, con algún **caso extraño** como es el de ***"San Blas - Canillejas".***
 
 <br/>
 
-Canillejas case
+Vamos pues a profundizar en el porqué de esta diferencia tan significativa
 
-```{r canillejas, warning=FALSE}
+```{r canillejas, fig.align="center", fig.height=15, fig.width=6, message=FALSE, warning=FALSE}
 
 dataCan <- data_train[data_train$neighbourhood_group_cleansed=="San Blas - Canillejas",]
 count(dataCan)
 
-ggplot(dataCan, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10')
+can <- ggplot(dataCan, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Canillejas") + xlab("")
 
 count(dataCan %>% group_by(room_type))
 
@@ -971,23 +1056,32 @@ cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
 lejosWanda <- anti_join(dataCan, cercaWanda)
 
 
-ggplot(cercaWanda, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') # Resueltísimo: Habitaciones privadas y compartidas
-ggplot(lejosWanda, aes(x=room_type, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') # Resueltísimo
+cerca_wanda <- ggplot(cercaWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Cerca de Wanda") + xlab("") # Resueltísimo: Habitaciones privadas y compartidas
+lejos_wanda <- ggplot(lejosWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10')  + theme(legend.position="NONE") + ggtitle("Lejos de Wanda") + xlab("") # Resueltísimo
+
+grid.arrange(can, cerca_wanda, lejos_wanda, nrow=3, ncol=1)
 ```
+
+A partir de lo que observamos en los gráficos, buscamos la descripción de algunos de los airbnbs de Canillejas y descubrimos que mencionan en muchos de ellos que esta cerca del Wanda Metropolitano.
+Realizamos dos gráficos más teniendo en cuenta la proximidad a Wanda, y claramente se puede concluir que el caso de Canillejas es que los airbnbs cercanos a Wanda fluctuan mucho más y nos descuadran el precio, además de tener claramente más opciones de alquiler de habitación que de apartamento entero.
 
 <br/>
 
 neighbourhoods without Wanda
 
-```{r neighNoWanda, warning=FALSE}
+```{r neighNoWanda, message=FALSE, warning=FALSE}
 
 neighNoWanda <- anti_join(data_train, cercaWanda)
 
-ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip()
+ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position = "NONE")
 
 ```
 
 <br/>
+
+```{r exit}
+knit_exit()
+```
 
 #### Eliminación de outliers
 
@@ -998,9 +1092,11 @@ data_train[grep("wanda", tolower(data_train$description)) & data_train$room_type
 
 ```
 
+**Echa un ojo a este código Antonio, que da error**
+
 ```{r delOutliers, eval=FALSE, warning=FALSE, include=FALSE}
 
-data_train <- data_train %>% mutate(pricePP = price/accommodates) data$ac
+data_train <- data_train %>% mutate(pricePP = price/accommodates) data$ac #Este Código da error
 umbral <- 150
 plazas <- 10
 data_train <- data_train[data_train$pricePP<umbral & data_train$acomm<=plazas]
@@ -1034,7 +1130,7 @@ ggplot(meanPriceByNB, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_
 
 <br/>
 
-### Deteccion de valores atipicos
+#### Deteccion de valores atipicos
 
 Comprobamos si hay algunos datos atipicos en nuestro conjunto de datos.
 
@@ -1241,7 +1337,7 @@ ggplot(data = data_train_clean) +
 
 <br/>
 
-Valores atipicos de variable host_listings_count
+Valores atípicos de variable host_listings_count
 
 ```{r datos coun graph, echo=FALSE, warning=FALSE}
 plot(data_train_clean$host_listings_count)
