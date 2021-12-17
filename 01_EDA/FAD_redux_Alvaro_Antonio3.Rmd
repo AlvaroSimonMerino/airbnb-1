@@ -1067,11 +1067,51 @@ grid.arrange(price_hs, price_hisph, nrow = 1, ncol=2)
 
 En principio no vemos diferencias en los precios según la experiencia del host, ni tampoco se aprecia una diferencia sensible sobre si es o no superhost.
 
+<br/>
+<br/>
 
 #### Análisis del precio en función de las reviews
 
 
 ```{r priceReviews}
+
+
+# reviews_per_month vs price
+p <- ggplot(data_train, aes(x=reviews_per_month, y=price, color=price, size=price)) + geom_point() + theme(legend.position="none")
+price_rvpm <- ggMarginal(p, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
+
+# review_scores_rating vs price
+pr <- ggplot(data_train, aes(x=review_scores_rating, y=price, color=price, size=price)) + geom_point() + theme(legend.position="none")
+price_rscr <- ggMarginal(pr, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
+
+# grids
+grid.arrange(price_rscr, price_rvpm, nrow =1, ncol=2)
+```
+
+
+Se observa que en general los espacios con más reviews son los que tienen un precio más alto, y que un mayor rating también podría influír en el precio.
+
+
+<br/>
+<br/>
+
+
+#### Análisis del precio según fecha de última review
+
+Como se mencionó en el análisis univariante, cabe la posibilidad de que haya un "antes" y un "después" de los precios tras la declaración del Estado de Alarma el 15 de Marzo de 2020:
+
+```{r lastReviewPrice}
+
+
+
+```
+
+
+#### Análisis del precio según disponibilidad y estancia mínima promedio
+
+```{r nights}
+
+
 # price vs minimum_nights
 pricevsminimum_nights <- data_train %>%
   group_by(minimum_nights) %>%
@@ -1099,17 +1139,6 @@ pricevsavailability_365 <- data_train %>%
   summarise(precio = mean(price))
 
 price_ava360 <- ggplot(pricevsavailability_365, aes(x=availability_365, y=precio)) + geom_col(binwidth = 5, fill='#8B1A1A') # CHECK: can seasonality be borrowed from here and scraping date?
-
-# reviews_per_month vs price
-p <- ggplot(data_train, aes(x=reviews_per_month, y=price, color=price, size=price)) + geom_point() + theme(legend.position="none")
-price_rvpm <- ggMarginal(p, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
-
-# review_scores_rating vs price
-pr <- ggplot(data_train, aes(x=review_scores_rating, y=price, color=price, size=price)) + geom_point() + theme(legend.position="none")
-price_rscr <- ggMarginal(pr, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
-
-# grids
-grid.arrange(price_hs, price_hisph, price_rvpm, price_rscr, nrow =2, ncol=2)
 grid.arrange(price_nmin, price_minavgn, price_maxavgn, price_ava360, nrow =2, ncol=2)
 ```
 
