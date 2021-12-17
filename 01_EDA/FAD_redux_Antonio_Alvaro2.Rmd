@@ -601,6 +601,9 @@ na_bar %>% ggplot(aes(x = reorder(Features, totals), y = totals, fill = Features
 
 ```{r fig.height=7.5, fig.width=8, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center",eval=FALSE}
 md.pattern(data_train, rotate.names=TRUE)
+
+csna <- colSums(is.na(data_train_del_na))
+aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE, plot=FALSE)
 ```
 
 En el caso de *host_is_superhost* y *host_exp_days*, solo tenemos 19 observaciones faltantes, por lo que se optará por reemplazar directamente:
@@ -635,46 +638,50 @@ kable(cor(y)) %>%
 
 ```{r datos faltantes train, echo=FALSE, warning=FALSE}
 
-csna <- colSums(is.na(data_train_del_na))
-aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE, plot=FALSE)
+
 
 ```
 
 <br/>
 
-Para seleccionar un método de sustitución de valores faltantes, primero se analizará qué variables están altamente correlacionadas para excluírlas del proceso, puesto que pueden conducir a una multicolinealidad y, en consecuencia, dificultar su modelado:
+Para seleccionar un método de sustitución de valores faltantes, primero se analizará qué variables están altamente correlacionadas para excluírlas del proceso, puesto que pueden conducir a una situación de multicolinealidad y, en consecuencia, dificultar su modelado. Aquí se muestran, por pares, aquellas variables que presentan una correlación superior a 0.5:
 
 \
 
 ```{r datos high corr, echo=FALSE, message=FALSE, warning=FALSE}
+
 high.corr<-function(x){
   df<-x[sapply(x,is.numeric)]
   fit<-corr.test(df)
   diag(fit$r)<-0
   inds <- which(abs(fit$r) > 0.5, arr.ind=TRUE)
+
   return(rownames(inds))
 }
 
 high.corr(data_train_del_na)
 
-
 ```
 
-<br/>
+
 
 <br/>
 
-#### Imputación por regresión
+<br/>
+
+Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* .
 
 <br/>
 
-Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms* y *accommodates* (`r cor(data_train$bedrooms, data_train$accommodates, use="complete.obs")`%).
 
-Intentamos imputar datos faltantes de la variable *bedrooms* usando regresión lineal, ya que sabemos que hay correlacion alta entre esta variable y la variable *accommodates*.
+#### Imputacion por regresión
 
-```{r datos na line, echo=FALSE, message=FALSE, warning=FALSE}
+<br/>
+
+Intentamos imputar datos faltantes de variable *bedrooms* usando regresion lineal, aprovechando la alta correlación entre esta variable y *accommodates* (`r round(100 * cor(data_train$bedrooms, data_train$accommodates, use="complete.obs"),2)`%).
+
+```{r datos na line,  echo=FALSE, warning=FALSE}
 fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
-
 summary(fit)
 
 ```
@@ -683,30 +690,27 @@ Vemos que los coeficientes de regresión lineal son significativos, sin embargo,
 
 <br/>
 
-Veamos en qué se diferencian los valores predichos de los originales.
+Veamos en qué se diferencian los valores predichos de los originales:
 
-```{r datos na line result, echo=FALSE, message=FALSE, warning=FALSE}
+```{r datos na line result,  echo=FALSE, warning=FALSE}
 actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
 pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
-
 regr.eval(actuals, pred_lm)
 ```
 
-El error porcentual absoluto medio (mape) fue 26,4%, que es un resultado insatisfactorio.
-Probamos otros métodos.
+El error porcentual absoluto medio (MAPE) fue 26,4%, lo cual es un resultado insatisfactorio. Probaremos otros métodos.
+
+<br/>
+<br/>
+
+
+#### Imputación con paquete **mice**
 
 <br/>
 
-#### Imputación con paquete mice
+Utilizaremos los métodos *rf* (Random Forest) y *cart* (Classification and Regression Trees) del paquete *mice* para imputar los NA. Esta elección viene dada porque los métodos de imputación predeterminados de *mice* implican regresión lineal. Debido a que existe una alta probabilidad de que una columna sea una combinación lineal de otra, optamos por los métodos antes mencionados.
 
-<br/>
-
-Como tenemos alta probabilidad de que una columna sea una combinación lineal de otra, vamos usar methodos *rf* y *cart* del paquete *mice*.
-Los métodos de imputación predeterminados de *mice*, que implican regresión lineal, en nuestro caso van dar como resultado una matriz X que no se podrá invertir.
-
-Utilizando este paquete, podemos imputar datos faltantes para todas variables que contienen NAs.
-
-Resultatos para *random forest*.
+##### Random Forest:
 
 ```{r datos imp rf, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -717,14 +721,7 @@ miceOutput <- complete(miceMod)
 
 <br/>
 
-Comprobamos, si hay algunos NA en conjunto de datos.
-
-```{r datos imp rf na, echo=FALSE, message=FALSE, warning=FALSE}
-anyNA(miceOutput) # False
-```
-
-Se confirma la ausencia de datos faltantes.
-Vamos a comparar las distribuciones de los datos imputeados con los originales, usando el gráfico *densityplot*..
+Comparación de las distribuciones de los datos reemplazados con los originales:
 
 ```{r datos imp rf graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
 densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
@@ -732,7 +729,7 @@ densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
 
 <br/>
 
-Resultatos para *cart* (classification and regression trees).
+##### Classification and Regression Trees:
 
 ```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE}
 miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
@@ -742,14 +739,10 @@ miceOutput_cart <- complete(miceMod_cart)
 
 <br/>
 
-Comprobamos si queda algún NA en el conjunto de datos.
 
-```{r datos imp cart na, echo=FALSE, message=FALSE, warning=FALSE}
-anyNA(miceOutput_cart) # False
-```
 
-Queda confirmada la ausencia de datos faltantes.
-Vamos a comparar las distribuciones de los datos imputeados con los originales, usando el gráfico *densityplot*.
+
+Comparación de las distribuciones de los datos reemplazados con los originales:
 
 ```{r datos imp cart graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
 densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
@@ -757,8 +750,7 @@ densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
 
 <br/>
 
-Podemos apreciar que los datos imputados son muy cercanos a lo datos observados, pero el resultado que más se ajusta es por el método *cart*.
-Usamos este método para imputar los valores faltantes (NA) en nuestras variables.
+Podemos apreciar que los datos imputados son muy cercanos a los datos observados, pero el resultado que más se ajusta es por el método *cart*. Usamos este método para imputar los NA de $data\_train$.
 
 ```{r datos imputacion, echo=FALSE, message=FALSE, warning=FALSE}
 data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
@@ -772,7 +764,7 @@ data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_day
 
 <br/>
 
-Vamos a comprobar si tras las imputaciones, hemos conseguido eleminar todos los NAs de nuestra base de datos *data_train*.
+Vamos a comprobar si tras las imputaciones, hemos conseguido reemplazar todos los NAs de las columnas que nis interesan de *data_train* (*bedrooms*, *review_scores_rating*, *reviews_per_month* y *last_review_days*):
 
 ```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE}
 na_dat <- colSums(is.na(data_train_del_na)) # False
@@ -781,11 +773,19 @@ kable(as.matrix(na_dat)) %>%
   scroll_box(width = "100%", height = TRUE)
 ```
 
-Observamos que *data_train* ya no tiene datos faltantes y podemos trabajar con los datos de una forma más eficaz.
+Comprobamos que no queden NA en el conjunto de datos de salida:
+
+```{r datos imp cart na, echo=FALSE, message=FALSE, warning=FALSE}
+anyNA(miceOutput_cart) # False
+```
+
+Queda confirmada la ausencia de datos faltantes.
+
+Se observa que *data_train* ya no tiene datos faltantes y podemos trabajar con los datos de una forma más eficaz.
 
 ```{r}
 data_train <- data_train_del_na
-
+knit_exit()
 ```
 
 <br/> <br/>
@@ -797,6 +797,7 @@ En esta parte se analizará la relación de la variable objetivo $price$ con el 
 #### Análisis del precio en función al distrito
 
 ```{r priceVSngc, fig.align="center", message=FALSE, warning=FALSE}
+knit_exit()
 data_train %>%
   ggplot(aes(x=(reorder(neighbourhood_group_cleansed,price ,na.mr=TRUE)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("Distritos") + ylab("Precio")
 
