@@ -34,6 +34,7 @@ library(leaps)
 library('glmnet')
 library(MASS)
 library(caret)
+library('geosphere')
 ```
 
 # Transformacion y selecion previa de variables
@@ -454,4 +455,117 @@ paste("Error (mse) de entrenamiento:", training_mse)
 training_mape <- mean((preds_ridge-y)/y)
 paste("MAPE de entrenamiento:", training_mape)
 ```
+
+# Regresion lineal usando otras variables y transformaciones
+
+Como los objetos de alquiler más caros se centran cerca de Puerta del Sol, agregamos una nueva variable: la distancia a Puerta del Sol (*dist_sol*).
+```{r sol, echo=FALSE}
+data_train <- read_csv("data_train_clean.csv")
+
+sol <- c(-3.7035799616333795, 40.417114256598694)
+distance <- function(origen, row){
+  return(as.numeric(distm(origen, cbind(row$longitude, row$latitude), 
+                          fun = distHaversine))
+  )
+}
+data_train$dist_sol <- distance(sol, data_train)
+```
+
+Ahora veamos el gráfico de la dependencia del precio de la distancia a Puerta del Sol usando *log(dist_sol)* (como es la mejor transformacion de acuerdo con methodo Box-Cox).
+
+```{r sol gr, echo=FALSE}
+BoxCoxTrans(data_train$dist_sol)
+
+ggplot(data_train, aes(x = log(dist_sol), y = log(price))) +
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+Vemos que cuanto más lejos, más bajos son los precios en promedio. Considere esta dependencia de acuerdo con *room_type*.
+
+```{r sol gr 2, echo=FALSE}
+ggplot(data_train, aes(x = log(dist_sol), y = log(price), color=room_type)) +
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+El gráfico muestra que esta dependencia es diferente para diferentes tipos de alojamento.
+
+También haremos la transformación logarítmica de la variable *accommodates* para revelar una relación lineal más clara entre las variables.
+
+```{r accommodates gr, echo=FALSE}
+BoxCoxTrans(data_train$accommodates)
+
+ggplot(data_train, aes(x = log(accommodates), y = log(price))) +
+  geom_point()+
+  geom_smooth(method = 'lm')
+```
+
+Construyamos un modelo basado en estas dos dependencias
+```{r model1, echo=FALSE}
+fit_m1 <- lm(log(price) ~ log(accommodates)+room_type:log(dist_sol), data = data_train)
+summary(gvlma(fit_m1))
+```
+
+Obviamente, el modelo tiene una relación lineal, pero los residuos no se distribuyen normalmente y no se cumplen otras condiciones.
+
+```{r model1 summmm, echo=FALSE}
+plot(fit_m1$residuals)
+autoplot(fit_m1)
+```
+
+En el gráfico, podemos ver que todavía estamos lidiando con valores atípicos. Eleminamos valores atipicos.
+
+```{r model1 outliers, echo=FALSE}
+outliers.rm <- function(x){    
+  q <- quantile(x, 0.25) + quantile(x, 0.75)    
+  return(x[abs(x - q/2) <= 2*IQR(x)])}
+
+#summary(outliers.rm(data_train$price_per_person))
+#summary(outliers.rm(data_train$price))
+#summary(outliers.rm(data_train$accommodates))
+#summary(outliers.rm(data_train$minimum_nights))
+
+data_train <- subset(data_train, price_per_person <= 56)
+data_train <- subset(data_train, accommodates <= 7)
+data_train <- subset(data_train, price<= 189)
+data_train <- subset(data_train, minimum_nights<= 6)
+```
+
+Ahora obtenemos mejores resultados de modelo anterior.
+
+```{r model2, echo=FALSE}
+fit_m2 <- lm(log(price) ~ log(accommodates)+room_type:log(dist_sol), data = data_train)
+summary(gvlma(fit_m2))
+```
+
+```{r model2 summmm, echo=FALSE}
+plot(fit_m2$residuals)
+autoplot(fit_m2)
+```
+
+Si se calculan los residuos de este modelo, se puede observar que no siguen una distribución normal, pero ya residuos estan mejorando.
+
+```{r model2 summmm res, echo=FALSE}
+lillie.test(fit_m2$residuals)
+```
+
+Agreguemos la interacción de variables (*log(reviews_per_month):log(dist_sol)*) al modelo.
+
+```{r model3, echo=FALSE}
+fit_m3 <- lm(log(price) ~ log(accommodates)+room_type:log(dist_sol)+log(reviews_per_month):log(dist_sol), data = data_train) #0.6552
+summary(gvlma(fit_m3))
+```
+
+```{r model3 summmm, echo=FALSE}
+plot(fit_m3$residuals)
+autoplot(fit_m3)
+```
+
+Vemos que los parámetros del modelo han mejorado, los residuales se han vuelto más normales.
+
+```{r model3 summmm res, echo=FALSE}
+lillie.test(fit_m3$residuals)
+```
+
 
