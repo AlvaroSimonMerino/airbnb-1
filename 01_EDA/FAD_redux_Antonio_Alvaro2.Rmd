@@ -768,20 +768,12 @@ Vamos a comprobar si tras las imputaciones, hemos conseguido reemplazar todos lo
 
 ```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE}
 na_dat <- colSums(is.na(data_train_del_na)) # False
-kable(as.matrix(na_dat)) %>%
+kable(as.matrix(na_dat[c("bedrooms", "review_scores_rating", "reviews_per_month", "last_review_days")])) %>%
   kable_styling("striped") %>%
   scroll_box(width = "100%", height = TRUE)
 ```
 
-Comprobamos que no queden NA en el conjunto de datos de salida:
-
-```{r datos imp cart na, echo=FALSE, message=FALSE, warning=FALSE}
-anyNA(miceOutput_cart) # False
-```
-
-Queda confirmada la ausencia de datos faltantes.
-
-Se observa que *data_train* ya no tiene datos faltantes y podemos trabajar con los datos de una forma más eficaz.
+Queda confirmada la ausencia de datos faltantes en las variable de interés.
 
 ```{r}
 data_train <- data_train_del_na
