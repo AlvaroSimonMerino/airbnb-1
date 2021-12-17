@@ -789,9 +789,9 @@ El error porcentual absoluto medio (MAPE) fue 26,4%, lo cual es un resultado ins
 
 <!-- Queda confirmada la ausencia de datos faltantes en las variable de interés. -->
 
-<!-- ```{r} -->
-<!-- data_train <- data_train_del_na -->
-<!-- ``` -->
+```{r}
+data_train <- data_train_del_na
+```
 
 <br/> <br/>
 
@@ -910,7 +910,7 @@ data_train %>%
 
 ```
 
-En la mayoría de casos, el precio se encuentra entre 50 y 100 euros, y apenas hay fluctuación. El caso que llama la atención, es el del distrito de "San Blas - Canillejas": se trata de un barrio alejado del centro, más allá de la M-30. Sus precios, en principio, deberían asemejarse más a los de Ciudad Lineal que a los de el barrio de Salamanca o el Centro.
+En la mayoría de casos, el precio se encuentra entre 50 y 100 euros, y apenas hay fluctuación. El caso que llama la atención, es el del distrito de "San Blas - Canillejas": se trata de un barrio alejado del centro, más allá de la M-30. Sus precios, en principio, deberían asemejarse más a los de Ciudad Lineal que a los de Moncloa u Hortaleza.
 
 ```{r mapameanCani, fig.align="center", warning=FALSE}
 
@@ -1043,6 +1043,9 @@ pricePP_rtyp
 
 Si miramos el precio por persona, la relación se mantiene pero en mucha menor medida. Solo destaca el hotel frente al resto.
 
+<br/>
+<br/>
+
 
 #### Análisis del precio en función del host
 
@@ -1050,7 +1053,7 @@ A continuación, vamos a comparar la variable precio con una serie de variables 
 
 ```{r priceVS, fig.align="center", message=FALSE, warning=FALSE}
 
-knit_exit()
+
 # price vs host_since
 price_hs <- ggplot(data_train, aes(x=host_exp_days, y=price)) + geom_col(binwidth = 10, fill='#8B1C62') + scale_y_continuous(trans='log') # CHECK: Irrelevant TODO: agregar por promedio 
 
@@ -1058,6 +1061,17 @@ price_hs <- ggplot(data_train, aes(x=host_exp_days, y=price)) + geom_col(binwidt
 price_hisph <- ggplot(data_train, aes(x=host_is_superhost, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#FFA500') + scale_y_continuous(trans='log10') #CHECK: bit of an edge #FFA500
 
 
+grid.arrange(price_hs, price_hisph, nrow = 1, ncol=2)
+```
+
+
+En principio no vemos diferencias en los precios según la experiencia del host, ni tampoco se aprecia una diferencia sensible sobre si es o no superhost.
+
+
+#### Análisis del precio en función de las reviews
+
+
+```{r priceReviews}
 # price vs minimum_nights
 pricevsminimum_nights <- data_train %>%
   group_by(minimum_nights) %>%
@@ -1095,7 +1109,6 @@ pr <- ggplot(data_train, aes(x=review_scores_rating, y=price, color=price, size=
 price_rscr <- ggMarginal(pr, type="histogram",lwd=0.2,color='white', fill = "#FFC125", xparams = list(  bins=20),  size=6)
 
 # grids
-grid.arrange(price_rtyp, price_acc, price_bedr, price_bds, nrow =2, ncol=2)
 grid.arrange(price_hs, price_hisph, price_rvpm, price_rscr, nrow =2, ncol=2)
 grid.arrange(price_nmin, price_minavgn, price_maxavgn, price_ava360, nrow =2, ncol=2)
 ```
@@ -1120,6 +1133,13 @@ A priori no parece que haya información muy interesante o determinante en estas
 
 <br/>
 
+```{r exit2}
+
+knit_exit()
+
+```
+
+
 #### Análisis de la variable price, contra las variables ratings y distritos
 
 Preparamos las variables para hacer el ploteado del heatmap.
@@ -1127,6 +1147,8 @@ Creamos nuevas variables de mean_ratings y mean_price con la media de cada una d
 Además, añadimos una variable más que no se encuentra en la tabla de datos original, el número de habitantes por distrito en 2017, por pura curiosidad.
 
 ```{r basemap, warning=FALSE}
+
+knit_exit()
 price_dist_rating <- data_train %>% na.omit(data_train) %>%
   select(review_scores_rating, price, neighbourhood_group_cleansed)
 
