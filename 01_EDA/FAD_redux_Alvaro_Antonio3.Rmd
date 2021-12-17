@@ -920,12 +920,30 @@ ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour
 
 #### Análisis del precio en función del tipo de habitación
 
-A continuación, vamos a comparar la variable precio con una serie de variables de interés, para ver si relación utilizando técnicas de análisis multivariante y distintos tipos de gráficos.
-
 ```{r priceVSroomtype, fig.align="center", message=FALSE, warning=FALSE}
-knit_exit()
+
 # Price vs room type
 price_rtyp <- ggplot(data_train, aes(x=room_type, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
+price_rtyp
+```
+
+Tiene sentido que los hoteles sean más caros que los apartamentos, estos más caros que las habitaciones privadas, y estas más caras que las compartidas.
+
+```{r pricePPVSroomtype, fig.align="center", message=FALSE, warning=FALSE}
+
+# PricePP vs room type
+pricePP_rtyp <- ggplot(data_train, aes(x=room_type, y=price_per_person)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
+pricePP_rtyp
+```
+
+Si miramos el precio por persona, la relación se mantiene pero en mucha menor medida. Solo destaca el hotel frente al resto.
+
+
+#### Análisis del precio en función del host
+
+A continuación, vamos a comparar la variable precio con una serie de variables de interés, para ver si relación utilizando técnicas de análisis multivariante y distintos tipos de gráficos.
+
+```{r priceVS, fig.align="center", message=FALSE, warning=FALSE}
 
 
 # price vs host_since
