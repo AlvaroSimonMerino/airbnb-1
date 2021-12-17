@@ -521,10 +521,10 @@ outliers.rm <- function(x){
   q <- quantile(x, 0.25) + quantile(x, 0.75)    
   return(x[abs(x - q/2) <= 2*IQR(x)])}
 
-#summary(outliers.rm(data_train$price_per_person))
-#summary(outliers.rm(data_train$price))
-#summary(outliers.rm(data_train$accommodates))
-#summary(outliers.rm(data_train$minimum_nights))
+#max(outliers.rm(data_train$price_per_person))
+#max(outliers.rm(data_train$price))
+#max(outliers.rm(data_train$accommodates))
+#max(outliers.rm(data_train$minimum_nights))
 
 data_train <- subset(data_train, price_per_person <= 56)
 data_train <- subset(data_train, accommodates <= 7)
