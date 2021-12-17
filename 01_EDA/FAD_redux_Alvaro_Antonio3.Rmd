@@ -704,80 +704,82 @@ El error porcentual absoluto medio (MAPE) fue 26,4%, lo cual es un resultado ins
 <br/>
 
 
-#### Imputación con paquete **mice**
+<!-- #### Imputación con paquete **mice** -->
 
-<br/>
+<!-- <br/> -->
 
-Utilizaremos los métodos *rf* (Random Forest) y *cart* (Classification and Regression Trees) del paquete *mice* para imputar los NA. Esta elección viene dada porque los métodos de imputación predeterminados de *mice* implican regresión lineal. Debido a que existe una alta probabilidad de que una columna sea una combinación lineal de otra, optamos por los métodos antes mencionados.
+<!-- Utilizaremos los métodos *rf* (Random Forest) y *cart* (Classification and Regression Trees) del paquete *mice* para imputar los NA. Esta elección viene dada porque los métodos de imputación predeterminados de *mice* implican regresión lineal. Debido a que existe una alta probabilidad de que una columna sea una combinación lineal de otra, optamos por los métodos antes mencionados. -->
 
-##### Random Forest:
+<!-- ##### Random Forest: -->
 
-```{r datos imp rf, echo=FALSE, message=FALSE, warning=FALSE}
+<!-- ```{r datos imp rf, echo=FALSE, message=FALSE, warning=FALSE} -->
 
-miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)
-miceOutput <- complete(miceMod)
+<!-- miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123) -->
+<!-- miceOutput <- complete(miceMod) -->
 
-```
+<!-- ``` -->
 
-<br/>
+<!-- <br/> -->
 
-Comparación de las distribuciones de los datos reemplazados con los originales:
+<!-- Comparación de las distribuciones de los datos reemplazados con los originales: -->
 
-```{r datos imp rf graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
-densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
-```
+<!-- ```{r datos imp rf graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"} -->
+<!-- densityplot(miceMod, xlim = c(2.5, 17.5), ylim = c(0, 0.4)) -->
+<!-- ``` -->
 
-<br/>
+<!-- <br/> -->
 
-##### Classification and Regression Trees:
+<!-- ##### Classification and Regression Trees: -->
 
-```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE}
-miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
-miceOutput_cart <- complete(miceMod_cart)
+<!-- ```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE} -->
+<!-- miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123) -->
+<!-- miceOutput_cart <- complete(miceMod_cart) -->
 
-```
+<!-- ``` -->
 
-<br/>
-
-
+<!-- <br/> -->
 
 
-Comparación de las distribuciones de los datos reemplazados con los originales:
 
-```{r datos imp cart graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"}
-densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4))
-```
 
-<br/>
+<!-- Comparación de las distribuciones de los datos reemplazados con los originales: -->
 
-Podemos apreciar que los datos imputados son muy cercanos a los datos observados, pero el resultado que más se ajusta es por el método *cart*. Usamos este método para imputar los NA de $data\_train$.
+<!-- ```{r datos imp cart graph, echo=FALSE, message=FALSE, warning=FALSE, fig.align="center"} -->
+<!-- densityplot(miceMod_cart, xlim = c(2.5, 17.5), ylim = c(0, 0.4)) -->
+<!-- ``` -->
 
-```{r datos imputacion, echo=FALSE, message=FALSE, warning=FALSE}
-data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"]
+<!-- <br/> -->
 
-data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"]
+<!-- Podemos apreciar que los datos imputados son muy cercanos a los datos observados, pero el resultado que más se ajusta es por el método *cart*. Usamos este método para imputar los NA de $data\_train$. -->
 
-data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"]
+<!-- ```{r datos imputacion, echo=FALSE, message=FALSE, warning=FALSE} -->
+<!-- data_train_del_na$bedrooms[which(is.na(data_train_del_na$bedrooms))] <- miceOutput_cart[is.na(data_train_del_na$bedrooms), "bedrooms"] -->
 
-data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"]
-```
+<!-- data_train_del_na$review_scores_rating[which(is.na(data_train_del_na$review_scores_rating))] <- miceOutput_cart[is.na(data_train_del_na$review_scores_rating), "review_scores_rating"] -->
 
-<br/>
+<!-- data_train_del_na$reviews_per_month[which(is.na(data_train_del_na$reviews_per_month))] <- miceOutput_cart[is.na(data_train_del_na$reviews_per_month), "reviews_per_month"] -->
 
-Vamos a comprobar si tras las imputaciones, hemos conseguido reemplazar todos los NAs de las columnas que nis interesan de *data_train* (*bedrooms*, *review_scores_rating*, *reviews_per_month* y *last_review_days*):
+<!-- data_train_del_na$last_review_days[which(is.na(data_train_del_na$last_review_days))] <- miceOutput_cart[is.na(data_train_del_na$last_review_days), "last_review_days"] -->
+<!-- ``` -->
 
-```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE}
-na_dat <- colSums(is.na(data_train_del_na)) # False
-kable(as.matrix(na_dat[c("bedrooms", "review_scores_rating", "reviews_per_month", "last_review_days")])) %>%
-  kable_styling("striped") %>%
-  scroll_box(width = "100%", height = TRUE)
-```
+<!-- <br/> -->
 
-Queda confirmada la ausencia de datos faltantes en las variable de interés.
+<!-- Vamos a comprobar si tras las imputaciones, hemos conseguido reemplazar todos los NAs de las columnas que nis interesan de *data_train* (*bedrooms*, *review_scores_rating*, *reviews_per_month* y *last_review_days*): -->
 
-```{r}
-data_train <- data_train_del_na
-```
+<!-- ```{r datos cart na, echo=FALSE, message=FALSE, warning=FALSE} -->
+<!-- na_dat <- colSums(is.na(data_train_del_na)) # False -->
+<!-- kable(as.matrix(na_dat[c("bedrooms", "review_scores_rating", "reviews_per_month", "last_review_days")])) %>% -->
+<!--   kable_styling("striped") %>% -->
+<!--   scroll_box(width = "100%", height = TRUE) -->
+<!-- ``` -->
+
+
+
+<!-- Queda confirmada la ausencia de datos faltantes en las variable de interés. -->
+
+<!-- ```{r} -->
+<!-- data_train <- data_train_del_na -->
+<!-- ``` -->
 
 <br/> <br/>
 
@@ -795,27 +797,133 @@ price_map
 ```
 En este gráfico se puede apreciar cómo la mayoría de espacios de precio superior se encuentran en el distrito Centro, siendo también notoria su presencia en el Bario de Salamanca y en torno al Paseo de la Castellana.
 
+
 #### Análisis del precio en función del distrito
 
 ```{r priceVSngc, fig.align="center", message=FALSE, warning=FALSE}
-knit_exit()
-
-bymean <- with(data_train, reorder(neighbourhood_group_cleansed, -price, mean))
 
 data_train %>%
   ggplot(aes(x=(reorder(neighbourhood_group_cleansed, price, FUN=median)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("Distritos") + ylab("Precio")
 
+```
+
+En la mayoría de casos, el precio se encuentra entre 50 y 100 euros, y apenas hay fluctuación. El caso que llama la atención, es el del distrito de "San Blas - Canillejas": se trata de un barrio alejado del centro, más allá de la M-30. Sus precios, en principio, deberían asemejarse más a los de Ciudad Lineal que a los de el barrio de Salamanca o el Centro.
+
+```{r mapameanCani, fig.align="center", warning=FALSE}
+
+meanPriceByDistrict <- data_train %>% group_by(neighbourhood_group_cleansed) %>% summarize(mean_price = mean(price), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
 
 ```
 
-En la mayoría de casos, el precio se encuentra entre 50 y 100 euros, y que no hay demasiada fluctuación. El caso que llama la atención, es el del distrito de "San Blas - Canillejas": se trata de un barrio alejado del centro, más allá de la M-30. Sus precios, en principio, deberían asemejarse más a los de Ciudad Lineal que a los de el barrio de Salamanca o el Centro.
+
+```{r countCanillejas, fig.align="center", message=FALSE, warning=FALSE}
+
+dataCan <- data_train[data_train$neighbourhood_group_cleansed=="San Blas - Canillejas",]
+
+ggplot(dataCan, aes(x=room_type, y=price, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("San Blas - Canillejas") + xlab("")
+
+```
+
+Comprobamos que no hay hoteles AirBnb en este distrito, que los precios de las habitaciones privadas se encuentran ligeramente por encima de los apartamentos, y las habitaciones compartidas quintuplican el precio de cualquiera de los anteriores. Esta comparativa no tiene en cuenta el número de personas que pueden utilizar el espacio, por lo que pasamos a representar el precio de cada espacio en función de esta variable:
+
+```{r plCanillejasPP, fig.align="center", message=FALSE, warning=FALSE}
+
+can <- ggplot(dataCan, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("San Blas - Canillejas") + xlab("")
+can
+
+```
+
+Este resultado tiene aún menos sentido.
+
+
+```{r countCanillejasPP, fig.align="center", message=FALSE, warning=FALSE}
+count(dataCan %>% group_by(room_type))
+
+```
+
+Como hemos encontrado solo 6 habitaciones compartidas, nos tomaremos un momento para leer sus descripciones:
+
+```{r descrWanda, fig.align="center", fig.height=15, fig.width=6, message=FALSE, warning=FALSE}
+
+dataCan[dataCan$room_type=="Shared room","description"] 
+
+```
+
+Resulta que la palabra "wanda" está incluída en la mayoría. "wanda" se refiere al estadio "Wanda Metropolitano", el estadio del Club Atlético de Madrid, que se encuentra en el límite del distrito. Es plausible que los espacios cercanos al estadio sean alquilados a forofos del Atlético por un precio muy superior al del resto del distrito. Debido a ello, se dividirán los datos del distrito en dos: aquellas observaciones en las que se menciona el estadio y aquellas en las que no.
+
+
+```{r divWanda, fig.align="center", fig.height=15, fig.width=6, message=FALSE, warning=FALSE}
+
+cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
+lejosWanda <- anti_join(dataCan, cercaWanda)
+
+
+cerca_wanda <- ggplot(cercaWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Cerca del estadio") + xlab("")
+lejos_wanda <- ggplot(lejosWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10')  + theme(legend.position="NONE") + ggtitle("Lejos del estadio") + xlab("")
+
+grid.arrange(can, cerca_wanda, lejos_wanda, nrow=3, ncol=1)
+```
+
+Se puede concluir que los precios de los espacios compartidos de San Blas - Canillejas cercanos al estadio son superiores a los del resto del distrito. Estos espacios conformarán un nuevo distrito, que denominaremos "Wanda Metropolitano".
 
 <br/>
+
+```{r creaWanda, warning=FALSE}
+
+data_train[rownames(cercaWanda),"neighbourhood_group_cleansed"] <- "Wanda Metropolitano"
+data_train[rownames(cercaWanda),"neighbourhood_cleansed"] <- "Wanda Metropolitano"
+
+
+```
+
+```{r neighNoWanda, message=FALSE, warning=FALSE}
+
+#neighNoWanda <- anti_join(data_train, cercaWanda)
+
+ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price, FUN=median), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + xlab("neighbourhood_group_cleansed") + coord_flip() + theme(legend.position = "NONE") 
+
+```
+
+```{r neighNoWandaPP, message=FALSE, warning=FALSE}
+
+#neighNoWanda <- anti_join(data_train, cercaWanda)
+
+ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price_per_person, FUN=median), y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + xlab("neighbourhood_group_cleansed") + coord_flip() + theme(legend.position = "NONE") + ylab("neighbourhood_group_cleansed")
+
+```
+
+El precio medio por distrito queda de la siguiente manera:
+
+```{r mapamean, fig.align="center", warning=FALSE}
+
+meanPriceByDistrict <- data_train %>% group_by(neighbourhood_group_cleansed) %>% summarize(mean_price = mean(price), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
+
+```
+
+
+El precio medio por persona y distrito queda de la siguiente manera:
+
+```{r mapameanPP, fig.align="center", warning=FALSE}
+
+meanPriceByDistrict <- data_train %>% group_by(neighbourhood_group_cleansed) %>% summarize(mean_price_per_person = mean(price_per_person), longitude = longitude, latitude = latitude)
+
+ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price_per_person)) + scale_color_gradient(low = "blue", high = "red")
+
+```
+
+
+<br/>
+
+#### Análisis del precio en función del tipo de habitación
 
 A continuación, vamos a comparar la variable precio con una serie de variables de interés, para ver si relación utilizando técnicas de análisis multivariante y distintos tipos de gráficos.
 
 ```{r priceVSroomtype, fig.align="center", message=FALSE, warning=FALSE}
-
+knit_exit()
 # Price vs room type
 price_rtyp <- ggplot(data_train, aes(x=room_type, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#4F94CD') + scale_y_continuous(trans='log10') + theme(axis.text.x = element_text(size=6, angle = 45, vjust = 0.25, hjust=0.25))
 
@@ -1019,43 +1127,7 @@ Claramente, el **precio por persona fluctua menos** que el precio a la hora de c
 
 <br/>
 
-Vamos pues a profundizar en el porqué de esta diferencia tan significativa
 
-```{r canillejas, fig.align="center", fig.height=15, fig.width=6, message=FALSE, warning=FALSE}
-
-dataCan <- data_train[data_train$neighbourhood_group_cleansed=="San Blas - Canillejas",]
-count(dataCan)
-
-can <- ggplot(dataCan, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Canillejas") + xlab("")
-
-count(dataCan %>% group_by(room_type))
-
-dataCan[dataCan$room_type=="Shared room","description"] # Check: Resuelto el misterio de los pisos caros. Están cerca del Wanda. Contémoslos:
-
-cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
-lejosWanda <- anti_join(dataCan, cercaWanda)
-
-
-cerca_wanda <- ggplot(cercaWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Cerca de Wanda") + xlab("") # Resueltísimo: Habitaciones privadas y compartidas
-lejos_wanda <- ggplot(lejosWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10')  + theme(legend.position="NONE") + ggtitle("Lejos de Wanda") + xlab("") # Resueltísimo
-
-grid.arrange(can, cerca_wanda, lejos_wanda, nrow=3, ncol=1)
-```
-
-A partir de lo que observamos en los gráficos, buscamos la descripción de algunos de los airbnbs de Canillejas y descubrimos que mencionan en muchos de ellos que esta cerca del Wanda Metropolitano.
-Realizamos dos gráficos más teniendo en cuenta la proximidad a Wanda, y claramente se puede concluir que el caso de Canillejas es que los airbnbs cercanos a Wanda fluctuan mucho más y nos descuadran el precio, además de tener claramente más opciones de alquiler de habitación que de apartamento entero.
-
-<br/>
-
-neighbourhoods without Wanda
-
-```{r neighNoWanda, message=FALSE, warning=FALSE}
-
-neighNoWanda <- anti_join(data_train, cercaWanda)
-
-ggplot(neighNoWanda, aes(x=neighbourhood_group_cleansed, y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position = "NONE")
-
-```
 
 <br/>
 
@@ -1065,12 +1137,7 @@ knit_exit()
 
 #### Eliminación de outliers
 
-```{r casoWanda, warning=FALSE}
 
-data_train[grep("wanda", tolower(data_train$description)) & data_train$room_type=="Shared room" & data_train$neighbourhood_group_cleansed=="San Blas - Canillejas",c("neighbourhood_group_cleansed","neighbourhood_cleansed")] <- "Wanda Metropolitano"
-
-
-```
 
 **Echa un ojo a este código Antonio, que da error**
 
@@ -1085,24 +1152,7 @@ data_train <- data_train[data_train$pricePP<umbral & data_train$acomm<=plazas]
 
 <br/>
 
-#### Mapa con ajustes a la variable price
 
-```{r mapa mean, eval=FALSE, warning=FALSE, include=FALSE}
-
-ggplot(data_train, aes(x=longitude,y=latitude)) + geom_point(aes(colour=price)) + scale_color_gradient(low = "blue", high = "red")
-
-ggplot(data_train, aes(x=longitude,y=latitude)) + geom_point(aes(colour=pricePP)) + scale_color_gradient(low = "blue", high = "red")
-
-
-meanPriceByDistrict <- data_train %>% group_by(neighbourhood_group_cleansed) %>% summarize(mean_price = mean(price), longitude = longitude, latitude = latitude)
-
-ggplot(meanPriceByDistrict, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
-
-
-meanPriceByNB <- data_train %>% group_by(neighbourhood_cleansed) %>% summarize(mean_price = mean(price), longitude = longitude, latitude = latitude)
-
-ggplot(meanPriceByNB, aes(x=longitude,y=latitude)) + geom_point(aes(colour=mean_price)) + scale_color_gradient(low = "blue", high = "red")
-```
 
 <br/><br/>
 
