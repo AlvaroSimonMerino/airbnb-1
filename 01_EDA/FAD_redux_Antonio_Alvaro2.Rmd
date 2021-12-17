@@ -65,7 +65,7 @@ library(shiny)
 library(GGally)
 library(RColorBrewer)
 library(ggExtra)
-library(DMwR)
+library(DMwR) # install.packages(c("zoo","xts","quantmod")), luego instala ROCR, luego install.packages( "Path/To/DMwR_0.4.1.tar.gz", repos=NULL, type="source" )
 ```
 
 <br/> <br/>
