@@ -637,7 +637,7 @@ kable(cor(y)) %>%
 
 csna <- colSums(is.na(data_train_del_na))
 aggr(data_train_del_na, numbers=TRUE, sortVars=TRUE, plot=FALSE)
-kable(as.matrix(csna)) %>% kable_styling("striped")  %>% kable_styling("striped") %>% scroll_box(width= "100%", height = "350px")
+
 ```
 
 <br/>
@@ -675,10 +675,8 @@ Intentamos imputar datos faltantes de la variable *bedrooms* usando regresión l
 ```{r datos na line, echo=FALSE, message=FALSE, warning=FALSE}
 fit <- with(data_train_del_na, lm(bedrooms ~ accommodates))
 
+summary(fit)
 
-kable(as.matrix(summary(fit))) %>%
-  kable_styling("striped", full_width = F) %>% 
-  scroll_box(width = "100%", height = "350px")
 ```
 
 Vemos que los coeficientes de regresión lineal son significativos, sin embargo, R es lo suficientemente pequeño y explica solo el 47,6% de variación.
@@ -691,10 +689,7 @@ Veamos en qué se diferencian los valores predichos de los originales.
 actuals <- data_train_del_na$bedrooms[!is.na(data_train_del_na$bedrooms)]
 pred_lm <- predict(lm( bedrooms ~ accommodates, data = data_train_del_na[!is.na(data_train_del_na$bedrooms), ]))
 
-
-kable(as.matrix(regr.eval(actuals, pred_lm))) %>%
-  kable_styling("striped", full_width = F) %>% 
-  scroll_box(width = "100%")
+regr.eval(actuals, pred_lm)
 ```
 
 El error porcentual absoluto medio (mape) fue 26,4%, que es un resultado insatisfactorio.
@@ -717,9 +712,7 @@ Resultatos para *random forest*.
 
 miceMod <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="rf", seed = 123)
 miceOutput <- complete(miceMod)
-kable(as.matrix(miceOutput)) %>%
-  kable_styling("striped") %>%
-  scroll_box(width = "100%", height = "350px")
+
 ```
 
 <br/>
@@ -744,9 +737,7 @@ Resultatos para *cart* (classification and regression trees).
 ```{r datos imp cart, echo=FALSE, message=FALSE, warning=FALSE}
 miceMod_cart <- mice(data_train_del_na[, !names(data_train_del_na) %in% c("price", "price_per_person", "description")], method="cart", seed = 123)
 miceOutput_cart <- complete(miceMod_cart)
-kable(as.matrix(miceOutput_cart)) %>%
-  kable_styling("striped") %>%
-  scroll_box(width = "100%", height = "350px")
+
 ```
 
 <br/>
