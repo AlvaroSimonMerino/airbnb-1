@@ -59,6 +59,7 @@ library(ggcorrplot)
 library(psych)
 library(ipred)
 library(car)
+library(ggfortify)
 library(geojsonio)
 library(gridExtra)
 library(shiny)
@@ -67,7 +68,7 @@ library(RColorBrewer)
 library(ggExtra)
 library(DMwR) # install.packages(c("zoo","xts","quantmod")), luego instala ROCR, luego install.packages( "Path/To/DMwR_0.4.1.tar.gz", repos=NULL, type="source" )
 library(geosphere)
-library(MASS)
+#library(MASS)
 library(gvlma)
 library('glmnet')
 library(leaps)
@@ -1382,7 +1383,7 @@ reg_sum$bic
 ```
    
     - el criterio CP asociado a cada modelo
-    ```{r regfit sum2, echo=FALSE}
+```{r regfit sum2, echo=FALSE}
 reg_sum$cp
 ```
 
@@ -1391,7 +1392,7 @@ for (metric in c("r2", "adjr2", "Cp", "bic")){plot(regfit_full, scale=metric)}
 ```
 
 Mejor opcion es modelo 8 con coeficientes:
-```{r regfit sum4, echo=FALSE}
+```{r regfit sum4 gh, echo=FALSE}
 coef(regfit_full, 8) 
 ```
 
@@ -1412,7 +1413,7 @@ reg_sum_bwd
  Para evaluar los resultados obtenidos, se ha observado:
     - el coeficiente R2 ajustado asociado a cada modelo
 
-```{r bwd sum, echo=FALSE}
+```{r bwd sum fg, echo=FALSE}
 reg_sum_bwd$adjr2
 ```
    
@@ -1422,11 +1423,11 @@ reg_sum_bwd$bic
 ```
    
     - el criterio CP asociado a cada modelo
-    ```{r bwd sum2, echo=FALSE}
+```{r bwd sum2, echo=FALSE}
 reg_sum_bwd$cp
 ```
 
-```{r bwd sum3, echo=FALSE}
+```{r bwd sum3 jk, echo=FALSE}
 for (metric in c("r2", "adjr2", "Cp", "bic")){plot(regfit_bwd, scale=metric)}
 ```
 
@@ -1443,7 +1444,7 @@ coef(regfit_bwd, 8)
 
 Otra de las técnicas utilizadas es la de Forward Selection, en la que se parte de un modelo vacío y se van añadiendo variables. Los resultados obtenidos han sido los siguientes:
 
-```{r fwd, echo=FALSE}
+```{r fwd p, echo=FALSE}
 regfit_fwd <- leaps::regsubsets(log(price) ~ accommodates*district_price_group +minimum_nights_avg_ntm*district_price_group + host_is_superhost*district_price_group+host_exp_days*district_price_group+review_scores_rating*district_price_group + reviewedAlarm*district_price_group + dist_sol*district_price_group + reviews_per_month*district_price_group, data_train_sel, method="forward")
 
 reg_sum_fwd <-summary(regfit_fwd)
@@ -1454,26 +1455,26 @@ reg_sum_fwd
  Para evaluar los resultados obtenidos, se ha observado:
     - el coeficiente R2 ajustado asociado a cada modelo
 
-```{r fwd sum, echo=FALSE}
+```{r fwd sum gh p, echo=FALSE}
 reg_sum_fwd$adjr2
 ```
    
     - el criterio BIC asociado a cada modelo
-```{r fwd sum1, echo=FALSE}
+```{r fwd sum1 p, echo=FALSE}
 reg_sum_fwd$bic
 ```
    
     - el criterio CP asociado a cada modelo
-    ```{r fwd sum2, echo=FALSE}
+```{r fwd sum2 p, echo=FALSE}
 reg_sum_fwd$cp
 ```
 
-```{r fwd sum3, echo=FALSE}
+```{r fwd sum3 p, echo=FALSE}
 for (metric in c("r2", "adjr2", "Cp", "bic")){plot(regfit_fwd, scale=metric)}
 ```
 
 Mejor opcion es modelo 8 con coeficientes:
-```{r fwd sum4, echo=FALSE}
+```{r fwd sum4 p, echo=FALSE}
 coef(regfit_fwd, 8) 
 ```
 
@@ -1493,7 +1494,7 @@ Se puede concluir, que las 3 técnicas de selección automática de variables in
 
 Comprobamos este modelo.
 
-```{r fit_5, echo=FALSE}
+```{r fit_5 hj, echo=FALSE}
 x <- model.matrix(log(price) ~ accommodates * district_price_group + 
     minimum_nights_avg_ntm * district_price_group + host_is_superhost * 
     district_price_group + host_exp_days * district_price_group + 
@@ -1507,7 +1508,7 @@ fit_5 <- lm(formula = y ~ accommodates + host_is_superhostTRUE + dist_sol+ distr
 anova(fit_5)
 ```
 
-```{r fit_5 sum, echo=FALSE}
+```{r fit_5 sum gh, echo=FALSE}
 plot(fit_5$residuals)
 summary(gvlma(fit_5))
 autoplot(fit_5)
@@ -1535,32 +1536,32 @@ reg_sum_fwd
 Para evaluar los resultados obtenidos, se ha observado:
     - el coeficiente R2 ajustado asociado a cada modelo
 
-```{r fwd sum, echo=FALSE}
+```{r fwd sum up, echo=FALSE}
 reg_sum_fwd$adjr2
 ```
    
     - el criterio BIC asociado a cada modelo
-```{r fwd sum1, echo=FALSE}
+```{r fwd sum1 up, echo=FALSE}
 reg_sum_fwd$bic
 ```
    
     - el criterio CP asociado a cada modelo
-    ```{r fwd sum2, echo=FALSE}
+```{r fwd sum2 up, echo=FALSE}
 reg_sum_fwd$cp
 ```
 
-```{r fwd sum3, echo=FALSE}
+```{r fwd sum3 up, echo=FALSE}
 for (metric in c("r2", "adjr2", "Cp", "bic")){plot(regfit_fwd, scale=metric)}
 ```
 
 Mejor opcion es modelo 8 con coeficientes:
-```{r fwd sum4, echo=FALSE}
+```{r fwd sum4 up, echo=FALSE}
 coef(regfit_fwd, 8) 
 ```
 
 
 
-```{r fit_5, echo=FALSE}
+```{r fit_5 upj, echo=FALSE}
 x <- model.matrix(log(price) ~ accommodates * district_price_group + 
     minimum_nights_avg_ntm * district_price_group + host_is_superhost * 
     district_price_group + host_exp_days * district_price_group + 
@@ -1574,7 +1575,7 @@ fit_5 <- lm(formula = y ~ accommodates + host_is_superhostTRUE + dist_sol+ distr
 anova(fit_5)
 ```
 
-```{r fit_5 sum, echo=FALSE}
+```{r fit_5 sum upgh, echo=FALSE}
 plot(fit_5$residuals)
 summary(gvlma(fit_5))
 autoplot(fit_5)
@@ -1583,7 +1584,7 @@ autoplot(fit_5)
 
 Comprobaremos los residuos del modelo para la normalidad:
 
-```{r model3 test, echo=FALSE}
+```{r model3 test upgh, echo=FALSE}
 lillie.test(fit_5$residuals)
 
 
@@ -1720,21 +1721,21 @@ Una vez ya hemos analizado completamente nuestras variables, se ha procedido ha 
 
 Incluimos en el modelo aquellas variables que, según el análisis realizado y las técnicas automáticas de selección, determinan más el precio .
 
-```{r model3, echo=FALSE}
+```{r model3 1, echo=FALSE}
 fit_m3 <- lm(log(price) ~ accommodates:district_price_group +dist_sol+ reviews_per_month+ review_scores_rating+host_is_superhost, data = data_train_sel) ### 0.6253
 summary(gvlma(fit_m3))
 ```
 
 El modelo tiene una relación lineal, se cumplen condiciones de Heteroscedasticity y Kurtosis.
 
-```{r model1 summmm, echo=FALSE}
+```{r model1 1 summmm, echo=FALSE}
 plot(fit_m3$residuals)
 autoplot(fit_m3)
 ```
 
 Si se calculan los residuos de este modelo, se puede observar que no siguen una distribución normal.
 
-```{r model2 summmm res, echo=FALSE}
+```{r model2 summmm res 1, echo=FALSE}
 lillie.test(fit_m3$residuals)
 ```
 
@@ -1745,19 +1746,19 @@ lillie.test(fit_m3$residuals)
 Añadimos en el primer modelo la interacción de las variables *reviews_per_month* y *district_price_group* .
 
 
-```{r model3, echo=FALSE}
+```{r model3 2, echo=FALSE}
 fit_m3 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_train_sel) ### 0.6253
 summary(gvlma(fit_m3))
 ```
 
-```{r model3 summmm, echo=FALSE}
+```{r model3 summmm 2, echo=FALSE}
 plot(fit_m3$residuals)
 autoplot(fit_m3)
 ```
 
 En este caso, finalmente obtuvimos un modelo con una distribución mas o menos normal de residuos.
 
-```{r model3 test, echo=FALSE}
+```{r model3 2 test, echo=FALSE}
 lillie.test(fit_m3$residuals)
 ```
 
@@ -1872,12 +1873,12 @@ data_t_m <- subset(data_t_m, price_per_person >= 3 & price_per_person <= max(out
 ```
 
 
-```{r model3 test, echo=FALSE}
+```{r model3 test ghk, echo=FALSE}
 fit_m3 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_t_m) ### 0.6253
 summary(gvlma(fit_m3))
 ```
 
-```{r model3 summmm test, echo=FALSE}
+```{r model3 summmm test gjos, echo=FALSE}
 plot(fit_m3$residuals)
 autoplot(fit_m3)
 ```
