@@ -1,7 +1,7 @@
 ---
 title: "FAD Memoria: EDA & LR"
 author: "Alvaro Simón Merino, Antonio Fernández Cáceres, Katsiaryna Zaitsava"
-date: "15/12/2021"
+date: "14/01/2022"
 output:
   html_document: 
     theme:
@@ -67,6 +67,10 @@ library(RColorBrewer)
 library(ggExtra)
 library(DMwR) # install.packages(c("zoo","xts","quantmod")), luego instala ROCR, luego install.packages( "Path/To/DMwR_0.4.1.tar.gz", repos=NULL, type="source" )
 library(geosphere)
+library(MASS)
+library(gvlma)
+library('glmnet')
+library(leaps)
 ```
 
 <br/> <br/>
@@ -87,7 +91,7 @@ Dicho objetivo, a su vez se dividirá en los siguientes pasos:
 4.  Estudio e imputación de datos faltantes.
 5.  Realización de un análisis exploratorio multivariante de los datos.
 6.  Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
-7.  Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable $price$. !!!???
+7.  Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable $price$.
 
 <br/> <br/>
 
@@ -569,7 +573,7 @@ ggplot(na.omit(data_train), aes(x=host_is_superhost, fill =host_is_superhost, al
 ```
 
 #### Creación otras variables nuevas
-!!! добавить в таблицу предыдущие переменные
+
 
 También nos interesa combinar varias variables para crear otras nuevas que puedan aportar nuevas perspectivas.
 Se crearán las siguientes variables:
@@ -594,7 +598,7 @@ sol <- c(-3.7035799616333795, 40.417114256598694)
 
 data_train$dist_sol <- distance(sol, data_train)
 
-nuevasVariables <- data.frame("Variable" = c('host_listings_count', 'price_per_person', 'dist_sol'), "Definición" = c("Número de espacios que alquila el dueño","Precio del espacio dividido por el número de plazas ofertadas", "Distancia al centro (Puerta del Sol)"))
+nuevasVariables <- data.frame("Variable" = c('host_listings_count', 'price_per_person', 'dist_sol', 'host_exp_days', 'reviewedAlarm'), "Definición" = c("Número de espacios que alquila el dueño","Precio del espacio dividido por el número de plazas ofertadas", "Distancia al centro (Puerta del Sol)","Experiencia del dueño en días", "Última revisión recibida durante las restricciones COVID-19" ))
 
 nuevasVariables$Tipo <- sapply(data_train[,nuevasVariables$Variable],class)
 nuevasVariables <- nuevasVariables[,c(1,3,2)]
@@ -701,7 +705,7 @@ high.corr(data_train_del_na)
 
 <br/>
 
-Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms*, *accommodates* y *beds*.
+Vemos que existe un nivel relativamente alto de correlación entre las variables *bedrooms*, *accommodates* y *beds*. 
 
 <br/>
 
@@ -777,8 +781,6 @@ kable(as.matrix(na_dat[c("bedrooms","beds","review_scores_rating", "reviews_per_
   scroll_box(width = "100%", height = TRUE)
 ```
 
-
-
 <!-- Queda confirmada la ausencia de datos faltantes en las variable de interés. -->
 
 ```{r}
@@ -791,6 +793,8 @@ data_train <- data_train_del_na
 
 En esta parte se analizará la relación de la variable objetivo $price$ con el resto de variables seleccionadas.
 
+<br/>
+
 #### Análisis del precio en función de la localización
 
 ```{r precioGeneral, fig.align="center", message=FALSE, warning=FALSE}
@@ -799,9 +803,10 @@ En esta parte se analizará la relación de la variable objetivo $price$ con el 
 #price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
 #price_map
 ```
+
 En este gráfico se puede apreciar cómo la mayoría de espacios de precio superior se encuentran en el distrito Centro, siendo también notoria su presencia en el Bario de Salamanca y en torno al Paseo de la Castellana.
 
-
+<br/>
 
 #### Análisis del precio en función del número de plazas
 
@@ -877,7 +882,6 @@ grid.arrange(boxplot_price,tbl, ncol=2, nrow =1, as.table=TRUE)
 
 ```
 
-!!! Todavia hay muchos outliers
 
 Veamos cuánto varía el valor del precio por persona por noche dependiendo del tipo de alojamiento.
 
@@ -888,6 +892,8 @@ ggplot(data_train, aes(x=log(price_per_person), y=..density.., fill=room_type, c
 ```
 
 Aquí vemos que la distribución del precio por persona por noche para habitaciones privadas y apartamentos individuales es bastante similar y cercana a la normalidad. Esta declaración nos permite concluir que es más lógico para construir una regresión lineal considerar solo las ubicaciones en habitaciones de hotel o apartamentos (casas). En primer lugar, estos tipos de alojamiento son los más característicos de AirBNB, en segundo lugar, tienen una distribución similar del precio por persona por noche.
+
+<br/>
 
 #### Análisis del precio en función del tipo de habitación
 
@@ -911,6 +917,8 @@ pricePP_rtyp
 
 Si miramos el precio por persona, la relación se mantiene pero en mucha menor medida. Solo destaca el hotel frente al resto.
 
+<br/>
+
 #### Análisis del precio en función de la distancia al centro
 
 ```{r mapa precio, fig.align="center", message=FALSE, warning=FALSE}
@@ -927,6 +935,7 @@ grid.arrange(plot_dist,plot_distPP,plot_dist_r,plot_distPP_r, ncol=2, nrow =2, a
 
 Se comprueba que el precio disminuye según aumenta la distancia al centro de la ciudad. Y también vemos una dependencia diferente para diferentes tipos de alojamiento, donde los hoteles, habitaciones privadas y apartamentos tienden a reducir el precio con el aumento de la distancia, y para las habitaciones compartidas - al revés. Al mismo tiempo, los hoteles tienden a reducir el precio más bruscamente que para habitaciones individuales o apartamentos.
 
+<br/>
 
 #### Análisis del precio en función del distrito
 
@@ -973,8 +982,7 @@ count(dataCan %>% group_by(room_type))
 
 ```
 
-!!! No me sale aqui 6!!!
-Como hemos encontrado solo 6 habitaciones compartidas, nos tomaremos un momento para leer sus descripciones:
+Como hemos encontrado unas habitaciones compartidas, nos tomaremos un momento para leer sus descripciones:
 
 ```{r descrWanda, fig.align="center", fig.height=15, fig.width=6, message=FALSE, warning=FALSE}
 
@@ -1142,12 +1150,11 @@ Se observa que en general los espacios con más reviews son los que tienen un pr
 
 
 <br/>
-<br/>
 
 
 #### Análisis del precio según fecha de última review
 
-Como se mencionó en el análisis univariante, cabe la posibilidad de que haya un "antes" y un "después" de los precios tras la declaración del Estado de Alarma el 15 de Marzo de 2020:
+Como se mencionó en el análisis univariante, cabe la posibilidad de que haya diferencia entre precios durante las restricciones de COVID-19 y sin ellos:
 
 
 ```{r precovid y postcovid}
@@ -1157,9 +1164,9 @@ ggplot(data_train, aes(x=reviewedAlarm, y = price_per_person)) + geom_boxplot() 
 ```
 
 
-La diferencia de precios por persona en promedio dependiendo de si la propiedad tuvo una review antes o después de la declaración del Estado de Alarma es de `r round(mean(data_train[data_train$reviewedAlarm== "Off","price_per_person"]) - mean(data_train[data_train$reviewedAlarm=="On","price_per_person"]),2)`€.
+La diferencia de precios por persona en promedio dependiendo de si la propiedad tuvo una review en tiempo de sin restricciones COVID-19 o  con ellos es de `r round(mean(data_train[data_train$reviewedAlarm== "Off","price_per_person"]) - mean(data_train[data_train$reviewedAlarm=="On","price_per_person"]),2)`€.
+Aquí queremos señalar que si no limitamos el precio máximo por persona y noche a 143 euros, esta diferencia es varias veces mayor. Esto se debe a que las ofertas más caras eran propias en el apogeo del turismo y, en consecuencia, en un momento sin restricciones COVID-19.
 
-<br/>
 <br/>
 
 
@@ -1202,6 +1209,53 @@ Además, añadimos una variable más que no se encuentra en la tabla de datos or
 
 
 price_dist_rating <- data_train %>% #na.omit(data_train) %>%
+  select(review_scores_rating, price, neighbourhood_group_cleansed)
+
+price_dist_rating <- price_dist_rating %>%
+  group_by(neighbourhood_group_cleansed) %>%
+  summarise (mean_rating = mean(review_scores_rating), mean_price = mean(price))
+
+price_dist_rating <- data.frame(price_dist_rating[price_dist_rating$neighbourhood_group_cleansed!="Wanda Metropolitano",])
+
+head(price_dist_rating, 10)
+
+# Añadimos población del 2017 por distrito
+price_dist_rating$Poblacion_2017 = c(155660, 50010, 260196, 140473, 147551, 140866, 219867, 249973, 193264, 242139, 121683, 95614, 240867, 120406, 147854, 161222, 161313, 142894, 74048, 114512, 154318)
+pdr_mat <- data.frame(price_dist_rating, row.names = 1)
+
+#write.table(heatmap_df, file = "dataforheatmap.csv",
+#            sep = "\t", row.names = F)
+```
+
+<br/>
+
+Y a continuación el heatmap de la matriz creada anteriormente
+
+```{r heatmap, fig.align="center", message=FALSE, warning=FALSE}
+# Matrix format
+mat <- pdr_mat
+matriz <- as.matrix(mat)
+heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(matriz==0, NA, matriz), notecex=0.7,na.color=par("bg"), cexCol=0.7, col= colorRampPalette(brewer.pal(10, "YlOrRd"))(10))
+# Heatmap
+#d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
+
+#heatmap(matriz, Colv = NA, Rowv = NA, scale="column")
+```
+
+El objetivo de este gráfico era realizar un análisis multivariante a tres bandas, cogiendo la variable objetivo y dos de las variables que más nos interesan.
+Preliminarmente, esperábamos poder ver una clara relación entre estas variables, pero a nivel visual no hay nada demasiado evidente.
+Algo que llama ligeramente la atención es la cierta "simetría" que parece haber entre las columnas de las reviews y la de la población, dónde hay una serie de tonos más oscuros hacia el centro de las columnas.
+
+Es interesante ver también como las medias de reviews más altas, se encuentran en barrios como Vicálvaro, Moratalaz, Monclia, Cuidad Lineal, Fuencarral... y sin embargo zonas como el Centro o Salamanca parecen tener reviews más bajas.
+
+También se puede apreciar muy ligeramente que las zonas dónde hay más población, tienen quizás una menor media de precio, intuyendo que quizás haya menos cantidad de Airbnbs porque hay más población "autóctona".
+
+Considere estos indicadores en términos de grupos de distritos creados anteriormente.
+
+```{r basemap group, warning=FALSE}
+
+
+price_dist_rating <- data_train %>% #na.omit(data_train) %>%
   select(review_scores_rating, price, district_price_group, price_per_person)
 
 price_dist_rating <- price_dist_rating %>%
@@ -1224,7 +1278,7 @@ pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 
 Y a continuación el heatmap de la matriz creada anteriormente
 
-```{r heatmap, fig.align="center", message=FALSE, warning=FALSE}
+```{r heatmap group, fig.align="center", message=FALSE, warning=FALSE}
 # Matrix format
 mat <- pdr_mat
 matriz <- as.matrix(mat)
@@ -1236,19 +1290,13 @@ heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(ma
 
 ```
 
-El objetivo de este gráfico era realizar un análisis multivariante a tres bandas, cogiendo la variable objetivo y dos de las variables que más nos interesan.
-Preliminarmente, esperábamos poder ver una clara relación entre estas variables, pero a nivel visual no hay nada demasiado evidente.
-Algo que llama ligeramente la atención es la cierta "simetría" que parece haber entre las columnas de las reviews y la de la población, dónde hay una serie de tonos más oscuros hacia el centro de las columnas.
-
-Es interesante ver también como las medias de reviews más altas, se encuentran en barrios como Vicálvaro, Moratalaz, Monclia, Cuidad Lineal, Fuencarral... y sin embargo zonas como el Centro o Salamanca parecen tener reviews más bajas.
-
-También se puede apreciar muy ligeramente que las zonas dónde hay más población, tienen quizás una menor media de precio, intuyendo que quizás haya menos cantidad de Airbnbs porque hay más población "autóctona".
-
-Podemos concluir que aunque no muy evidente, si se aprecia un cierto incremento de color naranja asociado a precios más altos, en los distritos localizados en el centro de la ciudad.
-
-!!! Resumen: para lineal que vamos usar
+Vemos que para los grupos de distritos con un precio superior al promedio, la calificación es más baja que para los grupos de distritos con un precio promedio y por debajo del promedio por persona por noche.
 
 <br/>
+
+Por lo tanto, según el análisis anterior, las siguientes variables tienen el mayor impacto en el precio final *accommodates*, *dist_sol*, *room_type* y *district_price_group*. 
+
+<br/> <br/>
 
 ## Transformaciones y procesado de variables
 
