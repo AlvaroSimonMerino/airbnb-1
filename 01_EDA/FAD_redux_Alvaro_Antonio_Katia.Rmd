@@ -785,9 +785,9 @@ En esta parte se analizará la relación de la variable objetivo $price$ con el 
 
 ```{r precioGeneral, fig.align="center", message=FALSE, warning=FALSE}
 # Gráfico de airbnbs localizadas por latitud y longitud, color por precio
-#adjusted_price <- subset(data_train, price >0 & price < 150)
-#price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
-#price_map
+adjusted_price <- subset(data_train, price >0 & price < 150)
+price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
+price_map
 ```
 
 En este gráfico se puede apreciar cómo la mayoría de espacios de precio superior se encuentran en el distrito Centro, siendo también notoria su presencia en el Bario de Salamanca y en torno al Paseo de la Castellana.
@@ -1463,7 +1463,6 @@ coef(regfit_fwd, 8)
 
 Podemos concluir que las 3 técnicas de selección automática de variables indican que el número óptimo de predictores es 8.
 Además, según estas técnicas, las variables más significativas para el modelo serían:
-
       - accommodates
       
       - host_is_superhost
@@ -1911,8 +1910,11 @@ pred_lm <- predict(fit_m5, data = subset(data_t_m, select = -price))
 regr.eval(actuals, pred_lm)
 ``` 
 
+Сomo resultado, obtuvimos el MAPE - 8,8%, que es que ligeramente peor que para el *train* (8,6%). Pero al mismo tiempo, el resultado es bastante bueno. 
 
-Resumen: Como resultado, vemos que el modelo resultante explica solo el 62,0% del precio por noche para un alojamiento (habitación individual o фpartamento). Cuando se eliminaron los datos atípicos, el impacto de la pandemia en los precios fue insignificante, ya que durante el período sin restricciones los precios fueron significativamente más altos y alcanzaron su punto máximo. También relativamente bajo el valor de R² sugiere que tal vez todavía hay factores que afectan significativamente el precio que no están presentes en nuestro conjunto de datos.
+Podemos concluir que el modelo seleccionado funciona casi por igual tanto en datos de *train* como en datos de *test*.
+
+Resumen: Como resultado, vemos que el modelo resultante explica solo el 62,0% del precio por noche para un alojamiento (habitación individual o фpartamento), con MAPE a 8,6%. Cuando se eliminaron los valores atípicos para construir un modelo lineal, el impacto de la pandemia en los precios fue insignificante, como que durante el período sin restricciones los precios fueron significativamente más altos y alcanzaron su punto máximo. También relativamente bajo el valor de R² sugiere que tal vez todavía hay factores que afectan significativamente el precio que no están presentes en nuestro conjunto de datos.
 
 En el ejemplo del cálculo de valores perdidos, se vio claramente que los métodos basados en *random forest* funcionan mejor en estos datos.
 
