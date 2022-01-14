@@ -1763,6 +1763,15 @@ En este caso, finalmente obtuvimos un modelo con una distribución más o menos 
 lillie.test(fit_m4$residuals)
 ```
 
+Obtenemos métricas más o menos satisfactorias:
+
+```{r datos line result train,  echo=FALSE}
+actuals <- log(data_train_sel$price)
+pred_lm <- predict(fit_m4, data = subset(data_train_sel, select = -price))
+regr.eval(actuals, pred_lm)
+``` 
+
+
 Por tant concluímos que este modelo es el más adecuado para nuestros objetivos, por lo que procedemos a la evaluación del modelo con los datos de *test*.
 
 ## Funcionamiento del modelo en el test
@@ -1774,6 +1783,7 @@ data_t<- data_test
 ```
 
 ```{r test preparation, echo=FALSE}
+
 data_t$minimum_nights <- NULL
 data_t$maximum_nights_avg_ntm <- NULL
 data_t$review_scores_accuracy <- NULL
@@ -1888,11 +1898,23 @@ En el *test* obtuvimos un modelo con una distribución normal de residuos.
 lillie.test(fit_m5$residuals)
 ```
 
+
 Como conclusión, vemos que el modelo funciona igual de bien con los datos de *test*, que con los datos de *train*.
 
 Para este modelo, en *train*, el valor de R² fue 0.6247
 
 Para *test*, el valor de R² fue 0.6221.
+
+```{r datos na line result test,  echo=FALSE}
+actuals <- log(data_t_m$price)
+pred_lm <- predict(fit_m5, data = subset(data_t_m, select = -price))
+regr.eval(actuals, pred_lm)
+``` 
+
+
+Resumen: Como resultado, vemos que el modelo resultante explica solo el 62,0% del precio por noche para un alojamiento (habitación individual o фpartamento). Cuando se eliminaron los datos atípicos, el impacto de la pandemia en los precios fue insignificante, ya que durante el período sin restricciones los precios fueron significativamente más altos y alcanzaron su punto máximo. También relativamente bajo el valor de R² sugiere que tal vez todavía hay factores que afectan significativamente el precio que no están presentes en nuestro conjunto de datos.
+
+En el ejemplo del cálculo de valores perdidos, se vio claramente que los métodos basados en *random forest* funcionan mejor en estos datos.
 
 <br/> <br/>
 
