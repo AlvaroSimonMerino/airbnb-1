@@ -610,6 +610,7 @@ kable(nuevasVariables)%>%kable_styling("striped")
 
 <br/>
 
+
 ## Estudio e imputación de valores faltantes
 
 ```{r data_na, echo=FALSE, message=FALSE, warning=FALSE}
@@ -1015,13 +1016,13 @@ data_train$description <- NULL
 
 ```{r neighNoWanda, message=FALSE, warning=FALSE}
 
-ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price, FUN=median), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + xlab("neighbourhood_group_cleansed") + coord_flip() + theme(legend.position = "NONE") 
+ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price, FUN=mean), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + xlab("neighbourhood_group_cleansed") + coord_flip() + theme(legend.position = "NONE") 
 
 ```
 
 ```{r neighNoWandaPP, message=FALSE, warning=FALSE}
 
-ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price_per_person, FUN=median), y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + xlab("neighbourhood_group_cleansed") + coord_flip() + theme(legend.position = "NONE")
+ggplot(data_train, aes(x=reorder(neighbourhood_group_cleansed, price_per_person, FUN=mean), y=price_per_person, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + xlab("neighbourhood_group_cleansed") + coord_flip() + theme(legend.position = "NONE")
 
 ```
 
