@@ -68,7 +68,7 @@ library(RColorBrewer)
 library(ggExtra)
 library(DMwR) # install.packages(c("zoo","xts","quantmod")), luego instala ROCR, luego install.packages( "Path/To/DMwR_0.4.1.tar.gz", repos=NULL, type="source" )
 library(geosphere)
-#library(MASS)
+library(MASS)
 library(gvlma)
 library('glmnet')
 library(leaps)
@@ -117,7 +117,7 @@ Basándonos en un conocimiento preliminar proporcionado por la plataforma sobre 
 
 ```{r datos, message=FALSE, warning=FALSE, paged.print=TRUE}
 data <- RawData %>%
-   select(id, host_id, host_since, host_is_superhost, description, neighbourhood_group_cleansed, latitude, longitude, room_type, accommodates, bedrooms, beds, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
+   dplyr::select(id, host_id, host_since, host_is_superhost, description, neighbourhood_group_cleansed, latitude, longitude, room_type, accommodates, bedrooms, beds, price, minimum_nights, minimum_nights_avg_ntm, maximum_nights_avg_ntm, availability_365, last_review, review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
 
 # Corrección de tipos
 
@@ -413,7 +413,7 @@ data_train$maximum_nights_avg_ntm <- NULL
 ```{r ratings, message=FALSE, warning=FALSE, fig.align="center"}
 
 scores <- data_train %>%
-  select(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
+  dplyr:: select(review_scores_rating, review_scores_accuracy, review_scores_cleanliness, review_scores_checkin, review_scores_communication, review_scores_location, review_scores_value, reviews_per_month)
 
 
 rs_rating <- ggplot(scores, aes(x = review_scores_rating, y=..count..)) +
@@ -601,8 +601,8 @@ data_train$dist_sol <- distance(sol, data_train)
 
 nuevasVariables <- data.frame("Variable" = c('host_listings_count', 'price_per_person', 'dist_sol', 'host_exp_days', 'reviewedAlarm'), "Definición" = c("Número de espacios que alquila el dueño","Precio del espacio dividido por el número de plazas ofertadas", "Distancia al centro (Puerta del Sol)","Experiencia del dueño en días", "Última revisión recibida durante las restricciones COVID-19" ))
 
-nuevasVariables$Tipo <- sapply(data_train[,nuevasVariables$Variable],class)
-nuevasVariables <- nuevasVariables[,c(1,3,2)]
+#nuevasVariables$Tipo <- sapply(data_train[,nuevasVariables$Variable],class)
+#nuevasVariables <- nuevasVariables[,c(1,3,2)]
 
 
 kable(nuevasVariables)%>%kable_styling("striped")
@@ -673,17 +673,11 @@ kable(cor(y)) %>%
   scroll_box(width = "100%", height = T)
 ```
 
-```{r datos faltantes train, echo=FALSE, warning=FALSE}
-
-
-
-```
 
 <br/>
 
-Para seleccionar un método de sustitución de valores faltantes, primero se analizará qué variables están altamente correlacionadas para excluírlas del proceso, puesto que pueden conducir a una situación de multicolinealidad y, en consecuencia, dificultar su modelado. Aquí se muestran, por pares, aquellas variables que presentan una correlación superior a 0.5:
+Para seleccionar un método de sustitución de valores faltantes, primero se analizará qué variables están altamente correlacionadas para excluírlas del proceso, puesto que pueden conducir a una situación de multicolinealidad y, en consecuencia, dificultar su modelado. Aquí se muestran, por pares, aquellas variables que presentan una correlación superior a 0.6:
 
-\
 
 ```{r datos high corr, echo=FALSE, message=FALSE, warning=FALSE}
 
@@ -943,7 +937,7 @@ Se comprueba que el precio disminuye según aumenta la distancia al centro de la
 ```{r priceVSngc, fig.align="center", message=FALSE, warning=FALSE}
 
 data_train %>%
-  ggplot(aes(x=(reorder(neighbourhood_group_cleansed, price, FUN=median)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("Distritos") + ylab("Precio")
+  ggplot(aes(x=(reorder(neighbourhood_group_cleansed, price, FUN=mean)), y=price, fill=neighbourhood_group_cleansed)) + geom_boxplot() + scale_y_continuous(trans='log10') + coord_flip() + theme(legend.position="none") + xlab("Distritos") + ylab("Precio")
 
 ```
 
@@ -1210,7 +1204,7 @@ Además, añadimos una variable más que no se encuentra en la tabla de datos or
 
 
 price_dist_rating <- data_train %>% #na.omit(data_train) %>%
-  select(review_scores_rating, price, neighbourhood_group_cleansed)
+  dplyr::select(review_scores_rating, price, neighbourhood_group_cleansed)
 
 price_dist_rating <- price_dist_rating %>%
   group_by(neighbourhood_group_cleansed) %>%
@@ -1258,7 +1252,7 @@ Considere estos indicadores en términos de grupos de distritos creados anterior
 
 
 price_dist_rating <- data_train %>% #na.omit(data_train) %>%
-  select(review_scores_rating, price, district_price_group, price_per_person)
+  dplyr::select(review_scores_rating, price, district_price_group, price_per_person)
 
 price_dist_rating <- price_dist_rating %>%
   group_by(district_price_group) %>%
@@ -1483,13 +1477,21 @@ coef(regfit_fwd, 8)
 ### Combrobacion de modelo
 
 Se puede concluir, que las 3 técnicas de selección automática de variables indican que el número óptimo de predictores es 8. Además, según estas técnicas, las variables más significativas para el modelo serían:
+      
       - accommodates
+      
       - host_is_superhost
+      
       - dist_sol
+      
       - reviews_per_month
+      
       - district_price_group C según el host_is_superhost
+      
       - district_price_group B según el host_exp_days
+      
       - district_price_group D según dist_sol 
+      
       - district_price_group E según dist_sol
 
 Comprobamos este modelo.
@@ -1619,7 +1621,7 @@ plot(cv_result)
 ```
 En la gráfica podemos apreciar dos líneas de puntos. La primera marca el lambda para el cual se consigue el modelo con un error cuadrático medio más bajo. La segunda, marca el lambda para el cual se consigue el modelo más sencillo cuyo error se encuentra a 1 desviación estándar del mínimo.
 
-En esta misma gráfica, podemos ver que se podría obtener un modelo con 17 predictores aproximadamente, cuyo error sería muy similar al del mejor modelo (que utiliza 39).
+En esta misma gráfica, podemos ver que se podría obtener un modelo con 16 predictores aproximadamente, cuyo error sería muy similar al del mejor modelo (que utiliza 39).
 
 ```{r Lasso sum, echo=FALSE}
 cv_result
@@ -1632,7 +1634,7 @@ lasso_coef <- predict(out,type="coefficients", s=cv_result$lambda.1se)[1:35,]
 lasso_coef[lasso_coef!=0]
 ```
 
-La información que obtenemos al aplicar regularización Lasso es parecida a la que obteníamos con las técnicas aplicadas anteriormente. Se obtiene un SE de 0.001540  con 17 variables, y 0.001439 con 39.
+La información que obtenemos al aplicar regularización Lasso es parecida a la que obteníamos con las técnicas aplicadas anteriormente. Se obtiene un SE de 0.001511  con 16 variables, y 0.001375 con 39.
 
 Si se calculan los residuos de este modelo, se puede observar que no siguen una distribución normal.
 
@@ -1682,7 +1684,7 @@ ridge_coef <- predict(out_ridge,type="coefficients")[1:35,]
 ridge_coef[ridge_coef!=0]
 ```
 
-Con Ridge, se obtiene un SE de 0.001449 con 44 variables.
+Con Ridge, se obtiene un SE de 0.001405 con 44 variables.
 
 ```{r Ridge 3, echo=FALSE}
 cv_ridge
@@ -1744,22 +1746,24 @@ lillie.test(fit_m3$residuals)
 ### Modelo 2
 
 Añadimos en el primer modelo la interacción de las variables *reviews_per_month* y *district_price_group* .
+fit_m4 <- lm(log(price) ~ accommodates:district_price_group+dist_sol+ +reviews_per_month:district_price_group + host_listings_count, data = data_train_sel) ### 0.6253
 
+host_listings_count+review_scores_rating
 
 ```{r model3 2, echo=FALSE}
-fit_m3 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_train_sel) ### 0.6253
-summary(gvlma(fit_m3))
+fit_m4 <- lm(log(price) ~ accommodates:district_price_group+dist_sol+ +reviews_per_month:district_price_group +host_listings_count:host_is_superhost +review_scores_rating, data = data_train_sel) ### 0.6253
+summary(gvlma(fit_m4))
 ```
 
 ```{r model3 summmm 2, echo=FALSE}
-plot(fit_m3$residuals)
-autoplot(fit_m3)
+plot(fit_m4$residuals)
+autoplot(fit_m4)
 ```
 
 En este caso, finalmente obtuvimos un modelo con una distribución mas o menos normal de residuos.
 
 ```{r model3 2 test, echo=FALSE}
-lillie.test(fit_m3$residuals)
+lillie.test(fit_m4$residuals)
 ```
 
 !!! Расчитать МSE y MAPE
@@ -1872,21 +1876,24 @@ data_t_m <- subset(data_t_m, price_per_person >= 3 & price_per_person <= max(out
 
 ```
 
+fit_m5 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_t_m) ### 0.6253
+summary(gvlma(fit_m5))
+
 
 ```{r model3 test ghk, echo=FALSE}
-fit_m3 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_t_m) ### 0.6253
-summary(gvlma(fit_m3))
+fit_m5 <- lm(log(price) ~ accommodates:district_price_group+dist_sol+ +reviews_per_month:district_price_group +host_listings_count:host_is_superhost +review_scores_rating, data = data_t_m) ### 0.6253
+summary(gvlma(fit_m5))
 ```
 
 ```{r model3 summmm test gjos, echo=FALSE}
-plot(fit_m3$residuals)
-autoplot(fit_m3)
+plot(fit_m5$residuals)
+autoplot(fit_m5)
 ```
 
 En el *test* obtuvimos un modelo con una distribución normal de residuos.
 
 ```{r model3 test test, echo=FALSE}
-lillie.test(fit_m3$residuals)
+lillie.test(fit_m5$residuals)
 ```
 
 
