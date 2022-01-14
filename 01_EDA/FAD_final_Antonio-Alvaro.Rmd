@@ -224,7 +224,7 @@ A continuación, imprimimos cada airbnb como un punto sobre un plano básico de 
 
 <br/>
 
-```{r mapa, eval=FALSE, fig.align="center", fig.height=7, fig.width=6.5, message=FALSE, warning=FALSE}
+```{r mapa, fig.align="center", fig.height=7, fig.width=6.5, message=FALSE, warning=FALSE}
 spdf <- geojson_read("../02_Resources/madrid-districts.geojson",  what = "sp")
 spdf_fortified <- tidy(spdf)
 spdf_df <- as.data.frame(spdf)
@@ -240,11 +240,6 @@ location
 
 ```
 
-<center>
-
-![](images/primerMapaMadrid.png)
-
-</center>
 
 Se aprecia una clara concentración de observaciones en los distritos centrales de Madrid.
 
@@ -792,18 +787,13 @@ En esta parte se analizará la relación de la variable objetivo $price$ con el 
 
 #### Análisis del precio en función de la localización
 
-```{r precioGeneral, eval=FALSE, fig.align="center", message=FALSE, warning=FALSE}
+```{r precioGeneral, fig.align="center", message=FALSE, warning=FALSE}
 # Gráfico de airbnbs localizadas por latitud y longitud, color por precio
 adjusted_price <- subset(data_train, price >0 & price < 150)
 price_map <- ggplot(adjusted_price, aes(x=longitude, y=latitude, color=price, alpha = 0.2)) + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill="grey", color="white", alpha = 0.4) + theme_void() + coord_map() + geom_point() + ggtitle('Airbnbs Madrid') + geom_polygon(data = spdf_fortified, aes( x = long, y = lat, group = group), fill= NA, color="white", alpha = 0.1) + scale_colour_gradient(low = "#8B0A50", high = "#FFA500", na.value = NA)
 price_map
 ```
 
-<center>
-
-![](images/MapaMadrid2.png)
-
-</center>
 
 En este gráfico se puede apreciar cómo la mayoría de espacios de precio superior se encuentran en el distrito Centro, siendo también notoria su presencia en el Barrio de Salamanca y en torno al Paseo de la Castellana.
 
@@ -1625,7 +1615,7 @@ En la gráfica podemos apreciar dos líneas de puntos.
 La primera marca el lambda para el cual se consigue el modelo con un error cuadrático medio más bajo.
 La segunda, marca el lambda para el cual se consigue el modelo más sencillo cuyo error se encuentra a 1 desviación típica del mínimo.
 
-En esta misma gráfica, podemos observar que se podría obtener un modelo con 16 predictores aproximadamente, cuyo error sería muy similar al del mejor modelo (que utiliza 39).
+En esta misma gráfica, podemos observar que se podría obtener un modelo con 17 predictores aproximadamente, cuyo error sería muy similar al del mejor modelo (que utiliza 43).
 
 ```{r Lasso sum, echo=FALSE}
 cv_result
@@ -1639,7 +1629,7 @@ lasso_coef[lasso_coef!=0]
 ```
 
 La información que obtenemos al aplicar regularización Lasso es parecida a la que obteníamos con las técnicas aplicadas anteriormente.
-Se obtiene un SE de 0.001511 con 16 variables, y 0.001375 con 39.
+Se obtiene un SE de 0.001556 con 17 variables, y 0.001494 con 43.
 
 Si se calculan los residuos de este modelo, se puede observar que no siguen una distribución normal.
 
@@ -1693,7 +1683,7 @@ ridge_coef <- predict(out_ridge,type="coefficients")[1:35,]
 ridge_coef[ridge_coef!=0]
 ```
 
-Con Ridge, se obtiene un SE de 0.001405 con 44 variables.
+Con Ridge, se obtiene un SE de 0.001440 con 44 variables.
 
 ```{r Ridge 3, echo=FALSE}
 cv_ridge
@@ -1915,7 +1905,7 @@ Como conclusión, vemos que el modelo funciona igual de bien con los datos de *t
 
 Para este modelo, en *train*, el valor de R² fue 0.6247.
 
-Para *test*, el valor de R² fue 0.6221.
+Para *test*, el valor de R² fue 0.623.
 
 ```{r datos na line result test,  echo=FALSE}
 actuals <- log(data_t_m$price)
@@ -1923,7 +1913,7 @@ pred_lm <- predict(fit_m5, data = subset(data_t_m, select = -price))
 regr.eval(actuals, pred_lm)
 ```
 
-Сomo resultado, obtuvimos un MAPE del 8,8%, que es que ligeramente peor que para el *train* (8,6%).
+Сomo resultado, obtuvimos un MAPE del 8,7%, que es que ligeramente peor que para el *train* (8,6%).
 Pero al mismo tiempo, el resultado es bastante bueno.
 
 Podemos concluir que el modelo seleccionado funciona casi por igual tanto en datos de *train* como en datos de *test*.
