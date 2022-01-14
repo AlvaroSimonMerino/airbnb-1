@@ -1745,10 +1745,8 @@ lillie.test(fit_m3$residuals)
 
 ### Modelo 2
 
-Añadimos en el primer modelo la interacción de las variables *reviews_per_month* y *district_price_group* .
-fit_m4 <- lm(log(price) ~ accommodates:district_price_group+dist_sol+ +reviews_per_month:district_price_group + host_listings_count, data = data_train_sel) ### 0.6253
+Añadimos en el primer modelo la interacción de las variables *reviews_per_month* y *district_price_group* , *host_listings_count* y *host_is_superhost*.
 
-host_listings_count+review_scores_rating
 
 ```{r model3 2, echo=FALSE}
 fit_m4 <- lm(log(price) ~ accommodates:district_price_group+dist_sol+ +reviews_per_month:district_price_group +host_listings_count:host_is_superhost +review_scores_rating, data = data_train_sel) ### 0.6253
@@ -1766,7 +1764,8 @@ En este caso, finalmente obtuvimos un modelo con una distribución mas o menos n
 lillie.test(fit_m4$residuals)
 ```
 
-!!! Расчитать МSE y MAPE
+
+Este modelo es el más adecuado para nuestros requisitos, por lo que es lo que vamos a probar en los datos de *test*.
 
 ## Funcionamiento del modelo en el test
 
@@ -1876,9 +1875,6 @@ data_t_m <- subset(data_t_m, price_per_person >= 3 & price_per_person <= max(out
 
 ```
 
-fit_m5 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_t_m) ### 0.6253
-summary(gvlma(fit_m5))
-
 
 ```{r model3 test ghk, echo=FALSE}
 fit_m5 <- lm(log(price) ~ accommodates:district_price_group+dist_sol+ +reviews_per_month:district_price_group +host_listings_count:host_is_superhost +review_scores_rating, data = data_t_m) ### 0.6253
@@ -1895,6 +1891,9 @@ En el *test* obtuvimos un modelo con una distribución normal de residuos.
 ```{r model3 test test, echo=FALSE}
 lillie.test(fit_m5$residuals)
 ```
+
+Como resultado, vemos que el modelo también funciona bien en los datos de *test*, al igual que en los datos de *train*. Para este modelo en *train*, el valor de R^2 fue 0.6247, para *test* - 0.6221.
+
 
 
 <br/> <br/>
