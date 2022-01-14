@@ -233,3 +233,47 @@ summary(gvlma(fit_m3))
 fit_m3 <- lm(log(price) ~ accommodates:district_price_group+ dist_sol +reviews_per_month:district_price_group + host_listings_count+review_scores_rating, data = data_train_sel) ### 0.6253
 summary(gvlma(fit_m3))
 ```
+
+
+
+
+data_train$minimum_nights <- NULL
+data_train$maximum_nights_avg_ntm <- NULL
+data_train$review_scores_accuracy <- NULL
+data_train$review_scores_cleanliness <- NULL
+data_train$review_scores_checkin <- NULL
+data_train$review_scores_communication <- NULL
+data_train$review_scores_location <- NULL
+data_train$review_scores_value <- NULL
+data_train$host_exp_days <- as.integer(max(data_train$host_since, na.rm = TRUE)-data_train$host_since)
+data_train$host_since <- NULL
+data_train$last_review <- NULL
+data_train <- data_train %>%
+  add_count(host_id)
+colnames(data_train)[colnames(data_train) == 'n'] <- 'host_listings_count'
+
+data_train$id <- NULL
+data_train$host_id <- NULL
+
+data_train$price_per_person <- data_train$price/data_train$accommodates
+
+data_train$dist_sol <- distance(sol, data_train)
+
+dataCan <- data_t[data_t$neighbourhood_group_cleansed=="San Blas - Canillejas",]
+cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
+
+
+
+data_train_num <- data_train_final[,num]
+norm_num <- preProcess(data_train_num, method = "BoxCox")
+data_train_nn <- predict(norm_num, data_train_num)
+data_train_final[,num] <- data_train_nn
+
+data_train_sel <- data_train_final[data_train_final$room_type=="Private room" | data_train_final$room_type=="Entire home/apt", ]
+
+data_train_sel <- subset(data_train_sel, price_per_person >= min(outliers.rm(data_train_sel$price_per_person)) & price_per_person <= max(outliers.rm(data_train_sel$price_per_person)))
+
+data_train_sel <- subset(data_train_sel, price_per_person >= 3)
+
+
+
