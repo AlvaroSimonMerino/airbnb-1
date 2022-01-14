@@ -536,7 +536,7 @@ Podría resultar interesante comparar los precios de los espacios en función de
 
 Partiendo de la variable $last\_review$, crearemos una nueva variable: $reviewedAlarm$.
 
-```{r reviewedAlarm}
+```{r reviewedAlarm, fig.align="center"}
 data_train <- data_train %>%
   mutate(reviewedAlarm = case_when(last_review>=state_of_alarm & last_review <= state_of_alarm_off_open ~ 'On', last_review < state_of_alarm | last_review > state_of_alarm_off_open ~ 'Off'))
 data_train$reviewedAlarm[which(is.na(data_train$reviewedAlarm))] <- "Off" # Damos los NA por Off, dado que no constan reviews
@@ -621,7 +621,7 @@ data_train_del_na <- data_train
 
 Una vez realizada la copia del conjunto de datos de Training, sobre la cual trabajaremos, se comprueba cuántos valores faltantes tiene cada variable:
 
-```{r grafico_na, echo=FALSE, message=FALSE, warning=FALSE, fig.height=5, fig.width=7.5}
+```{r grafico_na, echo=FALSE, message=FALSE, warning=FALSE, fig.height=5, fig.width=7.5, fig.align="center"}
 
 na_vis <- data.frame(t(colSums(is.na(data_train))))
 na_bar <- data.frame(Features = names(na_vis),totals=colSums(na_vis))
@@ -873,7 +873,7 @@ grid.arrange(boxplot_price,tbl, ncol=2, nrow =1, as.table=TRUE)
 
 Veamos cuánto varía el valor del precio por persona por noche dependiendo del tipo de alojamiento.
 
-```{r room type PP}
+```{r room type PP, fig.align="center"}
 
 ggplot(data_train, aes(x=log(price_per_person), y=..density.., fill=room_type, color=room_type)) + geom_histogram(binwidth = 10) + geom_density(alpha = .3) + xlim(c(0,6))
 
@@ -991,7 +991,7 @@ cercaWanda <- dataCan[grep("wanda|estadio", tolower(dataCan$description)),]
 lejosWanda <- anti_join(dataCan, cercaWanda)
 
 
-cerca_wanda <- ggplot(cercaWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Cerca del estadio") + xlab("") + scale_fill_brewer(palette="RdGy")
+cerca_wanda <- ggplot(cercaWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10') + theme(legend.position="NONE") + ggtitle("Cerca del estadio") + xlab("") + scale_fill_brewer(palette="PuOr")
 lejos_wanda <- ggplot(lejosWanda, aes(x=room_type, y=price_per_person, fill=room_type)) + geom_boxplot() + scale_y_continuous(trans='log10')  + theme(legend.position="NONE") + ggtitle("Lejos del estadio") + xlab("") + scale_fill_brewer(palette="PuOr")
 
 grid.arrange(can, cerca_wanda, lejos_wanda, nrow=3, ncol=1)
@@ -1082,7 +1082,7 @@ data_train %>%
 
 #### Análisis del precio en función de la experiencia del host
 
-```{r shcompare}
+```{r shcompare, fig.align="center"}
 #Comparativa ratings con host
 ggplot(data_train, aes(x = review_scores_rating, y=..count.., fill = host_is_superhost)) + geom_histogram(binwidth = 0.75, color='black', position='dodge', alpha = 1) + theme(legend.key.size = unit(0.3, 'cm'), legend.title = element_text(size = 6), legend.text = element_text(size = 6))+ xlab("Ratings")+ ylab("count")
 ```
@@ -1091,15 +1091,11 @@ Vemos que se cumple la definición de **superhost**, teniendo la mayoría de ell
 
 ```{r priceVS, fig.align="center", message=FALSE, warning=FALSE}
 
-
-# price vs host_since
-price_hs <- ggplot(data_train, aes(x=host_exp_days, y=price)) + geom_col(binwidth = 10, fill='#8B1C62') + scale_y_continuous(trans='log', labels = comma) # CHECK: Irrelevant TODO: agregar por promedio 
-
 # price vs host_is_superhost
 price_hisph <- ggplot(data_train, aes(x=host_is_superhost, y=price)) + geom_boxplot(outlier.size=0.2, lwd=0.25, color='black', fill='#FFA500') + scale_y_continuous(trans='log10') #CHECK: bit of an edge #FFA500
 
+price_hisph
 
-grid.arrange(price_hs, price_hisph, nrow = 1, ncol=2)
 ```
 
 En principio no vemos diferencias en los precios según la experiencia del host, ni tampoco se aprecia una diferencia sensible dependiendo de si es superhost o no.
@@ -1108,7 +1104,7 @@ En principio no vemos diferencias en los precios según la experiencia del host,
 
 #### Análisis del precio en función de las reviews
 
-```{r priceReviews}
+```{r priceReviews, fig.align="center"}
 
 
 # reviews_per_month vs price
@@ -1131,7 +1127,7 @@ Se observa que en general los espacios con más reviews son los que tienen un pr
 
 Como se mencionó en el análisis univariante, cabe la posibilidad de que haya diferencia entre precios durante las restricciones de COVID-19 y sin ellos:
 
-```{r precovid y postcovid}
+```{r precovid y postcovid, fig.align="center"}
 
 ggplot(data_train, aes(x=reviewedAlarm, y = price_per_person, fill = reviewedAlarm)) + geom_boxplot() + scale_y_continuous(trans='log10') + scale_fill_brewer(palette="RdYlGn")
 
@@ -1145,7 +1141,7 @@ Esto se debe a que las ofertas más caras eran propias de la época de apogeo de
 
 #### Análisis del precio según disponibilidad y estancia mínima promedio
 
-```{r nights_}
+```{r nights_, fig.align="center"}
 
 # price vs minimum_nights_avg_ntm
 pricevsminimum_nights_avg_ntm <- data_train %>%
@@ -1200,7 +1196,7 @@ pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 mat <- pdr_mat
 matriz <- as.matrix(mat)
 heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA, cellnote=ifelse(matriz==0, NA, matriz), notecex=0.7,na.color=par("bg"), cexCol=0.7, col= colorRampPalette(brewer.pal(10, "YlOrRd"))(10))
-legend(x="bottomright", legend=c("min", "ave", "max"), 
+legend(x="bottomright", legend=c("min", "avg", "max"), 
      fill=colorRampPalette(brewer.pal(10, "YlOrRd"))(3))
 # Heatmap
 #d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
@@ -1248,7 +1244,7 @@ pdr_mat <- data.frame(price_dist_rating, row.names = 1)
 mat <- pdr_mat
 matriz <- as.matrix(mat)
 heatmap(matriz, Colv = NA, Rowv = NA, scale="column", main=NA,cellnote=ifelse(matriz==0, NA, matriz), notecex=0.7,na.color=par("bg"), cexCol=0.7, col= colorRampPalette(brewer.pal(10, "YlOrRd"))(10))
-legend(x="bottomright", legend=c("min", "ave", "max"), 
+legend(x="bottomright", legend=c("min", "avg", "max"), 
      fill=colorRampPalette(brewer.pal(10, "YlOrRd"))(3))
 # Heatmap
 #d3heatmap(mat, scale="column", dendrogram = "none", width="800px", height="80Opx", colors = "Blues")
