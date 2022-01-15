@@ -1,24 +1,21 @@
-De ahora en adelante, hasta que preguntemos en clase, la manera de trabajar será importando ficheros .Rmd
+## Predicción de precios de AirBnbs mediante Regresión Lineal Multivariante
 
-De momento AnalisisInicialAirbnb.Rmd es el fichero principal, desde el cual llamaremos a aquellos en los que trabajamos. Esto nos permitirá trabajar a la vez y en la rama main sin generar conflictos de código. Más adelante le daremos forma parecida a la Memoria que subió Álvaro.
+### Autores: Alvaro Simón Merino, Katsiaryna Zaitsava, Antonio Fernández Cáceres
 
-Para empezar a trabajar con los datos ya en ficheros separados, lo único que hay que hacer es abrir AnalisisInicialAirBnb.Rmd, y ejecutar "Run All", y con esto tendremos los datos cargados (variable 'data') y en su formato correspondiente en el espacio de trabajo. Añadid al principio de vuestro fichero
+#### 14/01/2022
 
-```{r load myData, include=FALSE}
-load(".RData")
-```
+Para la realización de esta práctica se ha seleccionado el dataset *listings.csv* (Airbnb Madrid, 2021-09-10), un conjunto de datos obtenido de [insideairbnb.com](http://insideairbnb.com/).
+Puede ser descargado a través de este [enlace](http://data.insideairbnb.com/spain/comunidad-de-madrid/madrid/2021-09-10/data/listings.csv.gz).
 
-Si no deseáis hacer esto más de una vez, guardad el .RData al salir.
+El objetivo general de esta práctica es proponer un modelo de regresión lineal multivariante para predecir el precio por noche de un espacio ofertado en la plataforma *AirBnb* y situado en Madrid.
+<br/>
 
+Dicho objetivo, a su vez se dividirá en los siguientes pasos:
 
-Intentemos no modificar más 'data'. Hasta que hagamos Train/Test o imputemos valores, crearemos copias con otro nombre.
-
-Tareas por hacer:
-1.- Realizar una descripción precisa de los objetivos de esta práctica (en curso)
-2.- Encontrar outliers, sobre todo en $price$.
-3.- Decidir qué se hace con los valores missing.
-4.- Hacer una función que divida los sets en Train/Test, en un 70%/30% para todos los id de cada neighbouhood_group_cleansed.
-	MUCHO OJO: esta función se puede programar ya, pero no se implementará para analizar hasta que los outliers y missings hayan sido tratados.
-
-
-Happy EDA!
+1.  Selección preliminar de variables.
+2.  Separación del conjunto de datos en dos grupos: Training (70% de los datos) y Test (30% de los datos)
+3.  Realización de un análisis exploratorio univariante de los datos.
+4.  Estudio e imputación de datos faltantes.
+5.  Realización de un análisis exploratorio multivariante de los datos.
+6.  Transformaciones necesarias a cada una de las variables para poder ser utilizadas en la regresión.
+7.  Ajuste, aplicación y evaluación de un modelo de regresión lineal múltiple con las variables seleccionadas para la predicción de la variable *price*.
