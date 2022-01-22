@@ -3,4 +3,5 @@
 *.RData
 *.Ruserdata
 *.pdf
+.ipynb_checkpoints
 .Rproj.user
